@@ -27,7 +27,7 @@ h2{font:700 1.4rem Georgia,serif;margin:26px 0 12px}
 .card .im{aspect-ratio:3/4;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:2.4rem}
 .card img{width:100%;height:100%;object-fit:cover}.card .in{padding:10px 12px}.card .in b{display:block}.card small{color:var(--mut)}
 .tag{display:inline-block;background:var(--acc);color:var(--on,#0b2417);border-radius:12px;padding:0 9px;font-size:.75rem;font-weight:700;margin-top:4px}
-input,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+input,textarea,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
 textarea{min-height:80px;resize:vertical}label{display:block;font-size:.82rem;color:var(--mut);margin:9px 0 3px}
 fieldset{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:0 0 14px;padding:12px 14px}legend{font-weight:700;color:var(--acc2);padding:0 8px}
 .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
@@ -44,6 +44,7 @@ fieldset{background:var(--card);border:1px solid var(--line);border-radius:12px;
 .row{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
 .banner{background:#ffe9a8;color:#5a4300;border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:.88rem}
 svg{max-width:100%}
+.fl{display:flex;gap:8px;flex-wrap:wrap}
 .card{border-top:4px solid var(--acc)}
 .sw{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .swb{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid var(--line)}
@@ -65,6 +66,13 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const FLD=[["nombre","Nombres"],["apellido","Apellidos"],["edad","Edad"],["genero","Género"],["origen","País de origen"],["actual","País actual"],["nacionalidad","Nacionalidad"],["facultad","Facultad"],["carrera","Carrera"]];
 const TXT=[["descHab","Descripción de la habilidad"],["pasiva","Habilidad pasiva"],["limites","Límites y debilidades"],["empleo","Empleo"],["afiliacion","Afiliación"],["aspiraciones","Aspiraciones"],["personalidad","Personalidad"],["historia","Historia"],["extra","Datos extra"]];
+const ETAPAS=["Estudiante activo/a","En pausa o con licencia","Egresado/a","Titulado/a","Posgrado o especialización","Retirado/a","Sin estudios universitarios"];
+const EG=["Egresado/a","Titulado/a","Posgrado o especialización"];
+const ANIOS=["1.er año","2.º año","3.er año","4.º año","5.º año","6.º año","Último año"];
+const SIT=["Sin ejercer todavía","Practicante o pasante","Profesional en ejercicio","Independiente o freelance","Docente o investigador/a","Retirado/a"];
+const bd=s=>[...s].map(c=>{const k=c.charCodeAt(0);return k>=65&&k<=90?String.fromCodePoint(0x1D400+k-65):k>=97&&k<=122?String.fromCodePoint(0x1D41A+k-97):c}).join("");
+const fmList=f=>[["Etapa académica",f.etapa],["Año de estudio",f.etapa===ETAPAS[0]?f.anio:""],["Año de ingreso",f.ingreso],["Año de egreso",EG.includes(f.etapa)?f.egreso:""],["Título o grado",f.titulo],["Institución",f.institucion],["Situación profesional",f.situacion],["Años de experiencia",f.experiencia],["Estudios adicionales",f.adicionales]].filter(x=>x[1]);
+const etapaTag=f=>f.etapa===ETAPAS[0]?(f.anio||"Estudiante"):(f.etapa||"");
 const PAL=["#5fd68f","#a78bfa","#f472b6","#60a5fa","#fbbf24","#f87171","#2dd4bf","#fb923c"];
 const theme=c=>{if(!c)return"";const n=parseInt(c.slice(1),16),l=.299*(n>>16)+.587*(n>>8&255)+.114*(n&255);return`--acc:${c};--acc2:color-mix(in srgb,${c} 65%,var(--ink));--fill:color-mix(in srgb,${c} 50%,transparent);--on:${l>150?"#111":"#fff"}`};
 const sha=async s=>{if(!crypto.subtle)return btoa(unescape(encodeURIComponent(s)));const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")};
@@ -92,15 +100,15 @@ function radar(st){const cx=160,cy=140,R=95,pt=(i,v)=>{const a=-Math.PI/2+i*2*Ma
  STATS.forEach((n,i)=>{const p=pt(i,12.7);s+=`<text x="${p[0]}" y="${p[1]+4}" text-anchor="${p[0]<cx-5?"end":p[0]>cx+5?"start":"middle"}" font-size="11" font-weight="700" fill="currentColor">${n.toUpperCase()}</text>`});
  return`<svg viewBox="0 0 320 280">${s}</svg>`}
 function compress(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=520,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.78))};im.src=r.result};r.readAsDataURL(file)})}
-const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}</small><br><span class="tag">Nv ${esc(f.nivel)||"?"} · ${esc(f.rango)||"—"}</span></div></a>`;
+const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}</small><br><span class="tag">Nv ${esc(f.nivel)||"?"} · ${esc(f.rango)||"—"}</span>${etapaTag(f)?`<br><small>${esc(etapaTag(f))}</small>`:""}</div></a>`;
 const banner=()=>local?`<div class="banner">⚠ Modo de prueba: las fichas se guardan solo en este navegador. Configura Firebase para que todos las vean.</div>`:"";
 
 /* ---------- Vistas ---------- */
 async function inicio(){const a=await all(),tot=a.length,ws=new Set(a.map(x=>x.autor).filter(Boolean)).size;
  $("#app").innerHTML=banner()+`<section class="hero"><h1>${TITULO}</h1><p>Crea la ficha de tu personaje, guárdala para siempre y explora los personajes de toda la comunidad.</p><a class="btn" href="#crear">Crear mi ficha</a> <a class="btn sec" href="#galeria">Ver galería</a><div class="counter"><div><b>${tot}</b>personajes</div><div><b>${ws}</b>creadores</div></div></section><h2>Últimos personajes</h2>${tot?`<div class="grid">${a.slice(0,4).map(cardHTML).join("")}</div>`:"<p>Aún no hay fichas. ¡Sé la primera persona en crear una!</p>"}`}
 async function galeria(){const a=await all(true);
- $("#app").innerHTML=banner()+`<h2>Galería</h2><input id="q" placeholder="Buscar por nombre, habilidad, rango…"><div class="grid" id="gr" style="margin-top:14px"></div>`;
- const draw=()=>{const q=$("#q").value.toLowerCase();const r=a.filter(f=>[f.nombre,f.apellido,f.habilidad,f.rango,f.autor].join(" ").toLowerCase().includes(q));$("#gr").innerHTML=r.map(cardHTML).join("")||"<p>Sin resultados.</p>"};$("#q").oninput=draw;draw()}
+ $("#app").innerHTML=banner()+`<h2>Galería</h2><div class="fl"><input id="q" placeholder="Buscar por nombre, habilidad, rango…" style="flex:1;min-width:200px"><select id="fe" style="width:auto"><option value="">Todas las etapas</option>${ETAPAS.map(x=>`<option>${x}</option>`).join("")}</select><select id="fs" style="width:auto"><option value="">Toda situación profesional</option>${SIT.map(x=>`<option>${x}</option>`).join("")}</select></div><div class="grid" id="gr" style="margin-top:14px"></div>`;
+ const draw=()=>{const q=$("#q").value.toLowerCase();const r=a.filter(f=>[f.nombre,f.apellido,f.habilidad,f.rango,f.autor].join(" ").toLowerCase().includes(q)&&(!$("#fe").value||f.etapa==$("#fe").value)&&(!$("#fs").value||f.situacion==$("#fs").value));$("#gr").innerHTML=r.map(cardHTML).join("")||"<p>Sin resultados.</p>"};["#q","#fe","#fs"].forEach(s=>$(s).oninput=draw);draw()}
 async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p>Ficha no encontrada.</p>";return}
  const tot=f.stats.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["HABILIDAD",f.habilidad],["NIVEL",f.nivel],["RANGO",f.rango]];
  const sec=(t,v)=>v?`<h3>${t}</h3><p>${esc(v)}</p>`:"";
@@ -109,7 +117,7 @@ async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p
  $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a><button class="sec" id="cp">Copiar en texto</button><button class="sec" id="ed">Editar</button><button class="red" id="dl">Eliminar</button></div>
  <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl"><div class="h"><span>DATOS BÁSICOS</span></div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h"><span>REPARTICIÓN DE PUNTOS</span></div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
  <div class="pic">${f.img?`<img src="${f.img}" alt="">`:""}</div><div style="padding:6px;display:flex;align-items:center">${radar(f.stats)}</div></div>
- <div class="txt"><p>${info}</p>${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
+ <div class="txt"><p>${info}</p>${fmList(f).length?`<h3>Formación y trayectoria</h3><p>${fmList(f).map(x=>`<b>${x[0]}:</b> ${esc(x[1])}`).join("<br>")}</p>`:""}${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
  $("#cp").onclick=async()=>{await navigator.clipboard.writeText(textSheet(f));$("#cp").textContent="¡Copiado!"};
  const pin=async()=>{const p=prompt("PIN de la ficha:");return p&&(await sha(p))===f.pinHash};
  $("#ed").onclick=async()=>{if(await pin()){sessionStorage.setItem("ok",id);location.hash="#editar/"+id}else alert("PIN incorrecto")};
@@ -165,7 +173,7 @@ ${L}
 
 ➢ 𝐄𝐦𝐩𝐥𝐞𝐨: ${f.empleo}
 ➢ 𝐀𝐟𝐢𝐥𝐢𝐚𝐜𝐢ó𝐧: ${f.afiliacion}
-➢ 𝐀𝐬𝐩𝐢𝐫𝐚𝐜𝐢𝐨𝐧𝐞𝐬: ${f.aspiraciones}
+➢ 𝐀𝐬𝐩𝐢𝐫𝐚𝐜𝐢𝐨𝐧𝐞𝐬: ${f.aspiraciones}${fmList(f).length?`\n\n${L}\n\n            ${bd("Formación y Trayectoria")}\n\n${fmList(f).map(([l,v])=>`➢ ${bd(l)}: ${v}`).join("\n")}`:""}
 
 ${L}
 
@@ -183,10 +191,12 @@ ${f.extra}`}
 async function form(id){
  let D={techs:[],stats:[5,5,5,5,5],img:"",nivel:"",rango:"",habilidad:"",autor:"",color:PAL[Math.floor(Math.random()*PAL.length)]};
  if(id){if(sessionStorage.getItem("ok")!==id){location.hash="#ficha/"+id;return}D=await db.get(id);D.color=D.color||PAL[0]}
+ const sel=(k,l,o)=>`<div><label>${l}</label><select data-k="${k}"><option value="">— Elige —</option>${o.map(x=>`<option ${D[k]==x?"selected":""}>${x}</option>`).join("")}</select></div>`;
  const inp=(k,l,t="")=>`<div><label>${l}</label><input data-k="${k}" ${t} value="${esc(D[k])}"></div>`;
  $("#app").innerHTML=banner()+`<h2>${id?"Editar ficha":"Crear ficha"}</h2><form onsubmit="return false">
  <fieldset><legend>Perfil</legend><label>Color de la ficha</label><div class="sw">${PAL.map(c=>`<button type="button" class="swb" data-c="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="col" value="${D.color}"></div><label>Imagen del personaje</label><input type="file" id="img" accept="image/*"><img id="pv" src="${D.img}" style="max-height:160px;margin-top:8px;border-radius:8px;${D.img?"":"display:none"}">
  <div class="g">${FLD.map(x=>inp(x[0],x[1])).join("")}${inp("autor","Tu nombre de usuario (creador/a)")}</div></fieldset>
+ <fieldset><legend>Formación y trayectoria</legend><div class="g">${sel("etapa","Etapa académica",ETAPAS)}<div id="w-anio">${sel("anio","Año de estudio",ANIOS)}</div>${inp("ingreso","Año de ingreso","type=number min=1950 max=2100")}<div id="w-egreso">${inp("egreso","Año de egreso","type=number min=1950 max=2100")}</div>${sel("situacion","Situación profesional",SIT)}${inp("experiencia","Años de experiencia","type=number min=0")}${inp("titulo","Título o grado obtenido")}${inp("institucion","Institución")}</div><label>Estudios adicionales (cursos, certificaciones, posgrados)</label><textarea data-k="adicionales">${esc(D.adicionales)}</textarea></fieldset>
  <fieldset><legend>Descripción de combate</legend><div class="g">${inp("habilidad","Nombre de la habilidad")}</div>
  ${TXT.slice(0,2).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}">${esc(D[x[0]])}</textarea>`).join("")}
  <label style="color:var(--ink);font-weight:700">Técnicas</label><div id="techs"></div><button type="button" class="sec" id="addT">+ Añadir técnica</button>
@@ -199,6 +209,7 @@ async function form(id){
  const ap=()=>{document.querySelector("form").style.cssText=theme(D.color);$("#col").value=D.color};ap();
  document.querySelectorAll(".swb").forEach(b=>b.onclick=()=>{D.color=b.dataset.c;ap()});$("#col").oninput=e=>{D.color=e.target.value;ap()};
  document.querySelectorAll("[data-k]").forEach(e=>e.oninput=()=>D[e.dataset.k]=e.value);
+ const vis=()=>{$("#w-anio").style.display=D.etapa===ETAPAS[0]?"":"none";$("#w-egreso").style.display=EG.includes(D.etapa)?"":"none"};document.querySelector("[data-k=etapa]").addEventListener("input",vis);vis();
  document.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{D.stats[r.dataset.s]=+r.value;r.nextElementSibling.textContent=r.value;rd()});
  $("#img").onchange=async e=>{if(e.target.files[0]){D.img=await compress(e.target.files[0]);$("#pv").src=D.img;$("#pv").style.display="block"}};
  const tb=()=>{$("#techs").innerHTML=D.techs.map((t,i)=>`<div class="tech"><button type="button" class="red x" data-d="${i}">✕</button>${[["nombre","Nombre"],["desc","Descripción"],["alcance","Alcance"],["uso","Uso"],["duracion","Duración"],["enfr","Enfriamiento"]].map(([k,l])=>`<label>${l}</label>${k=="desc"?`<textarea data-t="${i}" data-f="${k}">${esc(t[k])}</textarea>`:`<input data-t="${i}" data-f="${k}" value="${esc(t[k])}">`}`).join("")}</div>`).join("");
