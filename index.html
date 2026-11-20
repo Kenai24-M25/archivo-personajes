@@ -13,11 +13,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-ap
 a{color:inherit;text-decoration:none}
 nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
 nav b{font:700 1.15rem Georgia,serif;margin-right:auto}
-nav a{padding:6px 12px;border-radius:20px}nav a.on,nav a:hover{background:var(--acc);color:#0b2417}
+nav a{padding:6px 12px;border-radius:20px}nav a.on,nav a:hover{background:var(--acc);color:var(--on,#0b2417)}
 main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
 .hero{background:var(--hero);border:1px solid var(--line);border-radius:18px;text-align:center;padding:56px 18px;margin-bottom:26px}
 .hero h1{font:700 2.4rem Georgia,serif;margin:0 0 8px}.hero p{color:var(--mut);max-width:560px;margin:0 auto 20px}
-.btn,button{cursor:pointer;border:0;border-radius:10px;padding:9px 18px;font:inherit;font-weight:600;background:var(--acc);color:#0b2417;display:inline-block}
+.btn,button{cursor:pointer;border:0;border-radius:10px;padding:9px 18px;font:inherit;font-weight:600;background:var(--acc);color:var(--on,#0b2417);display:inline-block}
 .btn.sec,button.sec{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .btn.red,button.red{background:transparent;border:1px solid #d33;color:#d33}
 .counter{display:flex;justify-content:center;gap:30px;margin-top:22px;color:var(--mut)}.counter b{display:block;font-size:1.6rem;color:var(--ink)}
@@ -26,7 +26,7 @@ h2{font:700 1.4rem Georgia,serif;margin:26px 0 12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .15s}.card:hover{transform:translateY(-4px)}
 .card .im{aspect-ratio:3/4;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:2.4rem}
 .card img{width:100%;height:100%;object-fit:cover}.card .in{padding:10px 12px}.card .in b{display:block}.card small{color:var(--mut)}
-.tag{display:inline-block;background:var(--acc);color:#0b2417;border-radius:12px;padding:0 9px;font-size:.75rem;font-weight:700;margin-top:4px}
+.tag{display:inline-block;background:var(--acc);color:var(--on,#0b2417);border-radius:12px;padding:0 9px;font-size:.75rem;font-weight:700;margin-top:4px}
 input,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
 textarea{min-height:80px;resize:vertical}label{display:block;font-size:.82rem;color:var(--mut);margin:9px 0 3px}
 fieldset{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:0 0 14px;padding:12px 14px}legend{font-weight:700;color:var(--acc2);padding:0 8px}
@@ -37,13 +37,17 @@ fieldset{background:var(--card);border:1px solid var(--line);border-radius:12px;
 .sheet{background:var(--card);border:2px solid var(--ink);border-radius:8px;overflow:hidden;margin-bottom:16px}
 .top{display:grid;grid-template-columns:1.1fr 1fr 1.3fr}@media(max-width:620px){.top{grid-template-columns:1fr}}
 .tbl div{display:grid;grid-template-columns:1fr 1fr;border-bottom:1.5px solid var(--ink);font-size:.82rem}.tbl div.h{display:block;text-align:center}
-.tbl span{padding:3px 6px;text-align:center;overflow-wrap:anywhere}.tbl span:first-child,.tbl .h{background:var(--acc);color:#0b2417;font-weight:700}.tbl span:first-child{border-right:1.5px solid var(--ink)}
+.tbl span{padding:3px 6px;text-align:center;overflow-wrap:anywhere}.tbl span:first-child,.tbl .h{background:var(--acc);color:var(--on,#0b2417);font-weight:700}.tbl span:first-child{border-right:1.5px solid var(--ink)}
 .tbl,.pic{border-right:2px solid var(--ink)}.pic{min-height:220px;background:var(--bg)}.pic img{width:100%;height:100%;object-fit:cover;display:block}
 .txt{padding:4px 18px 16px;border-top:2px solid var(--ink)}.txt h3{color:var(--acc2);margin:16px 0 4px}.txt p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .t{border-left:3px solid var(--acc);padding-left:10px;margin:8px 0}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
 .banner{background:#ffe9a8;color:#5a4300;border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:.88rem}
 svg{max-width:100%}
+.card{border-top:4px solid var(--acc)}
+.sw{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.swb{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid var(--line)}
+.sw input{width:44px;height:34px;padding:0;border:0;background:none}
 </style>
 </head>
 <body>
@@ -61,6 +65,8 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const FLD=[["nombre","Nombres"],["apellido","Apellidos"],["edad","Edad"],["genero","Género"],["origen","País de origen"],["actual","País actual"],["nacionalidad","Nacionalidad"],["facultad","Facultad"],["carrera","Carrera"]];
 const TXT=[["descHab","Descripción de la habilidad"],["pasiva","Habilidad pasiva"],["limites","Límites y debilidades"],["empleo","Empleo"],["afiliacion","Afiliación"],["aspiraciones","Aspiraciones"],["personalidad","Personalidad"],["historia","Historia"],["extra","Datos extra"]];
+const PAL=["#5fd68f","#a78bfa","#f472b6","#60a5fa","#fbbf24","#f87171","#2dd4bf","#fb923c"];
+const theme=c=>{if(!c)return"";const n=parseInt(c.slice(1),16),l=.299*(n>>16)+.587*(n>>8&255)+.114*(n&255);return`--acc:${c};--acc2:color-mix(in srgb,${c} 65%,var(--ink));--fill:color-mix(in srgb,${c} 50%,transparent);--on:${l>150?"#111":"#fff"}`};
 const sha=async s=>{if(!crypto.subtle)return btoa(unescape(encodeURIComponent(s)));const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")};
 
 /* ---------- Base de datos (Firebase o modo local de prueba) ---------- */
@@ -86,7 +92,7 @@ function radar(st){const cx=160,cy=140,R=95,pt=(i,v)=>{const a=-Math.PI/2+i*2*Ma
  STATS.forEach((n,i)=>{const p=pt(i,12.7);s+=`<text x="${p[0]}" y="${p[1]+4}" text-anchor="${p[0]<cx-5?"end":p[0]>cx+5?"start":"middle"}" font-size="11" font-weight="700" fill="currentColor">${n.toUpperCase()}</text>`});
  return`<svg viewBox="0 0 320 280">${s}</svg>`}
 function compress(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=520,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.78))};im.src=r.result};r.readAsDataURL(file)})}
-const cardHTML=f=>`<a class="card" href="#ficha/${f.id}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}</small><br><span class="tag">Nv ${esc(f.nivel)||"?"} · ${esc(f.rango)||"—"}</span></div></a>`;
+const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}</small><br><span class="tag">Nv ${esc(f.nivel)||"?"} · ${esc(f.rango)||"—"}</span></div></a>`;
 const banner=()=>local?`<div class="banner">⚠ Modo de prueba: las fichas se guardan solo en este navegador. Configura Firebase para que todos las vean.</div>`:"";
 
 /* ---------- Vistas ---------- */
@@ -101,7 +107,7 @@ async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p
  const info=FLD.filter(x=>f[x[0]]).map(x=>`<b>${x[1]}:</b> ${esc(f[x[0]])}`).join("<br>");
  const tech=(f.techs||[]).map(t=>`<div class="t"><b>${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${[["Alcance",t.alcance],["Uso",t.uso],["Duración",t.duracion],["Enfriamiento",t.enfr]].filter(x=>x[1]).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
  $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a><button class="sec" id="cp">Copiar en texto</button><button class="sec" id="ed">Editar</button><button class="red" id="dl">Eliminar</button></div>
- <div class="sheet"><div class="top"><div class="tbl"><div class="h"><span>DATOS BÁSICOS</span></div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h"><span>REPARTICIÓN DE PUNTOS</span></div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
+ <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl"><div class="h"><span>DATOS BÁSICOS</span></div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h"><span>REPARTICIÓN DE PUNTOS</span></div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
  <div class="pic">${f.img?`<img src="${f.img}" alt="">`:""}</div><div style="padding:6px;display:flex;align-items:center">${radar(f.stats)}</div></div>
  <div class="txt"><p>${info}</p>${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
  $("#cp").onclick=async()=>{await navigator.clipboard.writeText(textSheet(f));$("#cp").textContent="¡Copiado!"};
@@ -175,11 +181,11 @@ ${f.historia}
 ${f.extra}`}
 
 async function form(id){
- let D={techs:[],stats:[5,5,5,5,5],img:"",nivel:"",rango:"",habilidad:"",autor:""};
- if(id){if(sessionStorage.getItem("ok")!==id){location.hash="#ficha/"+id;return}D=await db.get(id)}
+ let D={techs:[],stats:[5,5,5,5,5],img:"",nivel:"",rango:"",habilidad:"",autor:"",color:PAL[Math.floor(Math.random()*PAL.length)]};
+ if(id){if(sessionStorage.getItem("ok")!==id){location.hash="#ficha/"+id;return}D=await db.get(id);D.color=D.color||PAL[0]}
  const inp=(k,l,t="")=>`<div><label>${l}</label><input data-k="${k}" ${t} value="${esc(D[k])}"></div>`;
  $("#app").innerHTML=banner()+`<h2>${id?"Editar ficha":"Crear ficha"}</h2><form onsubmit="return false">
- <fieldset><legend>Perfil</legend><label>Imagen del personaje</label><input type="file" id="img" accept="image/*"><img id="pv" src="${D.img}" style="max-height:160px;margin-top:8px;border-radius:8px;${D.img?"":"display:none"}">
+ <fieldset><legend>Perfil</legend><label>Color de la ficha</label><div class="sw">${PAL.map(c=>`<button type="button" class="swb" data-c="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="col" value="${D.color}"></div><label>Imagen del personaje</label><input type="file" id="img" accept="image/*"><img id="pv" src="${D.img}" style="max-height:160px;margin-top:8px;border-radius:8px;${D.img?"":"display:none"}">
  <div class="g">${FLD.map(x=>inp(x[0],x[1])).join("")}${inp("autor","Tu nombre de usuario (creador/a)")}</div></fieldset>
  <fieldset><legend>Descripción de combate</legend><div class="g">${inp("habilidad","Nombre de la habilidad")}</div>
  ${TXT.slice(0,2).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}">${esc(D[x[0]])}</textarea>`).join("")}
@@ -190,6 +196,8 @@ async function form(id){
  <fieldset><legend>Seguridad</legend><label>${id?"Tu PIN no se puede cambiar aquí.":"PIN para editar o eliminar esta ficha más adelante (¡no lo olvides!)"}</label><input id="pin" type="password" ${id?"disabled":""} placeholder="Mínimo 4 caracteres"></fieldset>
  <button id="sv">${id?"Guardar cambios":"Publicar ficha"}</button></form>`;
  const rd=()=>$("#rd").innerHTML=radar(D.stats);rd();
+ const ap=()=>{document.querySelector("form").style.cssText=theme(D.color);$("#col").value=D.color};ap();
+ document.querySelectorAll(".swb").forEach(b=>b.onclick=()=>{D.color=b.dataset.c;ap()});$("#col").oninput=e=>{D.color=e.target.value;ap()};
  document.querySelectorAll("[data-k]").forEach(e=>e.oninput=()=>D[e.dataset.k]=e.value);
  document.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{D.stats[r.dataset.s]=+r.value;r.nextElementSibling.textContent=r.value;rd()});
  $("#img").onchange=async e=>{if(e.target.files[0]){D.img=await compress(e.target.files[0]);$("#pv").src=D.img;$("#pv").style.display="block"}};
