@@ -191,9 +191,11 @@ ${f.extra}`}
 async function form(id){
  let D={techs:[],stats:[5,5,5,5,5],img:"",nivel:"",rango:"",habilidad:"",autor:"",color:PAL[Math.floor(Math.random()*PAL.length)]};
  if(id){if(sessionStorage.getItem("ok")!==id){location.hash="#ficha/"+id;return}D=await db.get(id);D.color=D.color||PAL[0]}
+ const KEY="borrador_"+(id||"nueva");let rec=false;
+ try{const b=JSON.parse(localStorage.getItem(KEY)||"null");if(b&&b.d){D=b.d;D.color=D.color||PAL[0];rec=true}}catch(e){}
  const sel=(k,l,o)=>`<div><label>${l}</label><select data-k="${k}"><option value="">— Elige —</option>${o.map(x=>`<option ${D[k]==x?"selected":""}>${x}</option>`).join("")}</select></div>`;
  const inp=(k,l,t="")=>`<div><label>${l}</label><input data-k="${k}" ${t} value="${esc(D[k])}"></div>`;
- $("#app").innerHTML=banner()+`<h2>${id?"Editar ficha":"Crear ficha"}</h2><form onsubmit="return false">
+ $("#app").innerHTML=banner()+`<h2>${id?"Editar ficha":"Crear ficha"}</h2>${rec?`<div class="banner">✔ Recuperamos tu borrador. Puedes seguir donde lo dejaste (por seguridad, el PIN hay que escribirlo otra vez). <button type="button" class="sec" id="nd" style="padding:3px 10px;margin-left:6px">Empezar de cero</button></div>`:""}<p style="margin:-6px 0 12px"><small id="as" style="color:var(--mut)">Tu progreso se guarda solo mientras escribes.</small></p><form onsubmit="return false">
  <fieldset><legend>Perfil</legend><label>Color de la ficha</label><div class="sw">${PAL.map(c=>`<button type="button" class="swb" data-c="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="col" value="${D.color}"></div><label>Imagen del personaje</label><input type="file" id="img" accept="image/*"><img id="pv" src="${D.img}" style="max-height:160px;margin-top:8px;border-radius:8px;${D.img?"":"display:none"}">
  <div class="g">${FLD.map(x=>inp(x[0],x[1])).join("")}${inp("autor","Tu nombre de usuario (creador/a)")}</div></fieldset>
  <fieldset><legend>Formación y trayectoria</legend><div class="g">${sel("etapa","Etapa académica",ETAPAS)}<div id="w-anio">${sel("anio","Año de estudio",ANIOS)}</div>${inp("ingreso","Año de ingreso","type=number min=1950 max=2100")}<div id="w-egreso">${inp("egreso","Año de egreso","type=number min=1950 max=2100")}</div>${sel("situacion","Situación profesional",SIT)}${inp("experiencia","Años de experiencia","type=number min=0")}${inp("titulo","Título o grado obtenido")}${inp("institucion","Institución")}</div><label>Estudios adicionales (cursos, certificaciones, posgrados)</label><textarea data-k="adicionales">${esc(D.adicionales)}</textarea></fieldset>
@@ -207,20 +209,23 @@ async function form(id){
  <button id="sv">${id?"Guardar cambios":"Publicar ficha"}</button></form>`;
  const rd=()=>$("#rd").innerHTML=radar(D.stats);rd();
  const ap=()=>{document.querySelector("form").style.cssText=theme(D.color);$("#col").value=D.color};ap();
- document.querySelectorAll(".swb").forEach(b=>b.onclick=()=>{D.color=b.dataset.c;ap()});$("#col").oninput=e=>{D.color=e.target.value;ap()};
+ document.querySelectorAll(".swb").forEach(b=>b.onclick=()=>{D.color=b.dataset.c;ap();draft()});$("#col").oninput=e=>{D.color=e.target.value;ap();draft()};
  document.querySelectorAll("[data-k]").forEach(e=>e.oninput=()=>D[e.dataset.k]=e.value);
+ let tm;const draft=()=>{clearTimeout(tm);$("#as").textContent="Guardando borrador…";tm=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify({d:D,t:Date.now()}));$("#as").textContent="✔ Borrador guardado automáticamente"}catch(e){$("#as").textContent="⚠ No se pudo guardar el borrador (¿imagen muy pesada?)"}},600)};
+ document.querySelector("form").addEventListener("input",draft);
+ if($("#nd"))$("#nd").onclick=()=>{try{localStorage.removeItem(KEY)}catch(e){}form(id)};
  const vis=()=>{$("#w-anio").style.display=D.etapa===ETAPAS[0]?"":"none";$("#w-egreso").style.display=EG.includes(D.etapa)?"":"none"};document.querySelector("[data-k=etapa]").addEventListener("input",vis);vis();
  document.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{D.stats[r.dataset.s]=+r.value;r.nextElementSibling.textContent=r.value;rd()});
- $("#img").onchange=async e=>{if(e.target.files[0]){D.img=await compress(e.target.files[0]);$("#pv").src=D.img;$("#pv").style.display="block"}};
+ $("#img").onchange=async e=>{if(e.target.files[0]){D.img=await compress(e.target.files[0]);$("#pv").src=D.img;$("#pv").style.display="block";draft()}};
  const tb=()=>{$("#techs").innerHTML=D.techs.map((t,i)=>`<div class="tech"><button type="button" class="red x" data-d="${i}">✕</button>${[["nombre","Nombre"],["desc","Descripción"],["alcance","Alcance"],["uso","Uso"],["duracion","Duración"],["enfr","Enfriamiento"]].map(([k,l])=>`<label>${l}</label>${k=="desc"?`<textarea data-t="${i}" data-f="${k}">${esc(t[k])}</textarea>`:`<input data-t="${i}" data-f="${k}" value="${esc(t[k])}">`}`).join("")}</div>`).join("");
   document.querySelectorAll("[data-t]").forEach(e=>e.oninput=()=>D.techs[e.dataset.t][e.dataset.f]=e.value);
-  document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{D.techs.splice(b.dataset.d,1);tb()})};tb();
- $("#addT").onclick=()=>{D.techs.push({nombre:"",desc:"",alcance:"",uso:"",duracion:"",enfr:""});tb()};
+  document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{D.techs.splice(b.dataset.d,1);tb();draft()})};tb();
+ $("#addT").onclick=()=>{D.techs.push({nombre:"",desc:"",alcance:"",uso:"",duracion:"",enfr:""});tb();draft()};
  $("#sv").onclick=async()=>{
   if(!D.nombre){alert("Escribe al menos los nombres del personaje.");return}
   if(!id){const p=$("#pin").value;if(p.length<4){alert("El PIN debe tener mínimo 4 caracteres.");return}D.pinHash=await sha(p);D.createdAt=Date.now()}
   $("#sv").textContent="Guardando…";const {id:_,...o}=D;
-  try{const nid=await db.save(o,id);cache=null;sessionStorage.removeItem("ok");location.hash="#ficha/"+nid}catch(e){alert("Error al guardar: "+e.message);$("#sv").textContent="Reintentar"}};
+  try{const nid=await db.save(o,id);cache=null;sessionStorage.removeItem("ok");try{localStorage.removeItem(KEY)}catch(e){}location.hash="#ficha/"+nid}catch(e){alert("Error al guardar: "+e.message);$("#sv").textContent="Reintentar"}};
 }
 
 /* ---------- Router ---------- */
