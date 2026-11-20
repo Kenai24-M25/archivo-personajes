@@ -44,6 +44,7 @@ fieldset{background:var(--card);border:1px solid var(--line);border-radius:12px;
 .row{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
 .banner{background:#ffe9a8;color:#5a4300;border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:.88rem}
 svg{max-width:100%}
+.lvbox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:1.05rem}
 .fl{display:flex;gap:8px;flex-wrap:wrap}
 .card{border-top:4px solid var(--acc)}
 .sw{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -72,6 +73,7 @@ const ANIOS=["1.er año","2.º año","3.er año","4.º año","5.º año","6.º a
 const SIT=["Sin ejercer todavía","Practicante o pasante","Profesional en ejercicio","Independiente o freelance","Docente o investigador/a","Retirado/a"];
 const bd=s=>[...s].map(c=>{const k=c.charCodeAt(0);return k>=65&&k<=90?String.fromCodePoint(0x1D400+k-65):k>=97&&k<=122?String.fromCodePoint(0x1D41A+k-97):c}).join("");
 const fmList=f=>[["Etapa académica",f.etapa],["Año de estudio",f.etapa===ETAPAS[0]?f.anio:""],["Año de ingreso",f.ingreso],["Año de egreso",EG.includes(f.etapa)?f.egreso:""],["Título o grado",f.titulo],["Institución",f.institucion],["Situación profesional",f.situacion],["Años de experiencia",f.experiencia],["Estudios adicionales",f.adicionales]].filter(x=>x[1]);
+const lv=st=>{const n=Math.round(st.reduce((a,b)=>a+Math.min(b,10),0)/5*10)/10;return{n:n.toFixed(1),r:n<2?"Bajo":n<3.5?"Medio":n<5?"Élite":n<6?"Alto":"Dios"}};
 const etapaTag=f=>f.etapa===ETAPAS[0]?(f.anio||"Estudiante"):(f.etapa||"");
 const PAL=["#5fd68f","#a78bfa","#f472b6","#60a5fa","#fbbf24","#f87171","#2dd4bf","#fb923c"];
 const theme=c=>{if(!c)return"";const n=parseInt(c.slice(1),16),l=.299*(n>>16)+.587*(n>>8&255)+.114*(n&255);return`--acc:${c};--acc2:color-mix(in srgb,${c} 65%,var(--ink));--fill:color-mix(in srgb,${c} 50%,transparent);--on:${l>150?"#111":"#fff"}`};
@@ -100,7 +102,7 @@ function radar(st){const cx=160,cy=140,R=95,pt=(i,v)=>{const a=-Math.PI/2+i*2*Ma
  STATS.forEach((n,i)=>{const p=pt(i,12.7);s+=`<text x="${p[0]}" y="${p[1]+4}" text-anchor="${p[0]<cx-5?"end":p[0]>cx+5?"start":"middle"}" font-size="11" font-weight="700" fill="currentColor">${n.toUpperCase()}</text>`});
  return`<svg viewBox="0 0 320 280">${s}</svg>`}
 function compress(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=520,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.78))};im.src=r.result};r.readAsDataURL(file)})}
-const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}</small><br><span class="tag">Nv ${esc(f.nivel)||"?"} · ${esc(f.rango)||"—"}</span>${etapaTag(f)?`<br><small>${esc(etapaTag(f))}</small>`:""}</div></a>`;
+const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}</small><br><span class="tag">Nv ${lv(f.stats).n} · ${lv(f.stats).r}</span>${etapaTag(f)?`<br><small>${esc(etapaTag(f))}</small>`:""}</div></a>`;
 const banner=()=>local?`<div class="banner">⚠ Modo de prueba: las fichas se guardan solo en este navegador. Configura Firebase para que todos las vean.</div>`:"";
 
 /* ---------- Vistas ---------- */
@@ -108,9 +110,9 @@ async function inicio(){const a=await all(),tot=a.length,ws=new Set(a.map(x=>x.a
  $("#app").innerHTML=banner()+`<section class="hero"><h1>${TITULO}</h1><p>Crea la ficha de tu personaje, guárdala para siempre y explora los personajes de toda la comunidad.</p><a class="btn" href="#crear">Crear mi ficha</a> <a class="btn sec" href="#galeria">Ver galería</a><div class="counter"><div><b>${tot}</b>personajes</div><div><b>${ws}</b>creadores</div></div></section><h2>Últimos personajes</h2>${tot?`<div class="grid">${a.slice(0,4).map(cardHTML).join("")}</div>`:"<p>Aún no hay fichas. ¡Sé la primera persona en crear una!</p>"}`}
 async function galeria(){const a=await all(true);
  $("#app").innerHTML=banner()+`<h2>Galería</h2><div class="fl"><input id="q" placeholder="Buscar por nombre, habilidad, rango…" style="flex:1;min-width:200px"><select id="fe" style="width:auto"><option value="">Todas las etapas</option>${ETAPAS.map(x=>`<option>${x}</option>`).join("")}</select><select id="fs" style="width:auto"><option value="">Toda situación profesional</option>${SIT.map(x=>`<option>${x}</option>`).join("")}</select></div><div class="grid" id="gr" style="margin-top:14px"></div>`;
- const draw=()=>{const q=$("#q").value.toLowerCase();const r=a.filter(f=>[f.nombre,f.apellido,f.habilidad,f.rango,f.autor].join(" ").toLowerCase().includes(q)&&(!$("#fe").value||f.etapa==$("#fe").value)&&(!$("#fs").value||f.situacion==$("#fs").value));$("#gr").innerHTML=r.map(cardHTML).join("")||"<p>Sin resultados.</p>"};["#q","#fe","#fs"].forEach(s=>$(s).oninput=draw);draw()}
+ const draw=()=>{const q=$("#q").value.toLowerCase();const r=a.filter(f=>[f.nombre,f.apellido,f.habilidad,lv(f.stats).r,f.autor].join(" ").toLowerCase().includes(q)&&(!$("#fe").value||f.etapa==$("#fe").value)&&(!$("#fs").value||f.situacion==$("#fs").value));$("#gr").innerHTML=r.map(cardHTML).join("")||"<p>Sin resultados.</p>"};["#q","#fe","#fs"].forEach(s=>$(s).oninput=draw);draw()}
 async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p>Ficha no encontrada.</p>";return}
- const tot=f.stats.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["HABILIDAD",f.habilidad],["NIVEL",f.nivel],["RANGO",f.rango]];
+ const tot=f.stats.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["HABILIDAD",f.habilidad],["NIVEL",lv(f.stats).n],["RANGO",lv(f.stats).r]];
  const sec=(t,v)=>v?`<h3>${t}</h3><p>${esc(v)}</p>`:"";
  const info=FLD.filter(x=>f[x[0]]).map(x=>`<b>${x[1]}:</b> ${esc(f[x[0]])}`).join("<br>");
  const tech=(f.techs||[]).map(t=>`<div class="t"><b>${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${[["Alcance",t.alcance],["Uso",t.uso],["Duración",t.duracion],["Enfriamiento",t.enfr]].filter(x=>x[1]).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
@@ -164,8 +166,8 @@ ${f.limites}
 ▸ 𝗥𝗲𝗰𝘂𝗽𝗲𝗿𝗮𝗰𝗶ó𝗻: ${f.stats[3]} / 10
 ▸ 𝗗𝗲𝗳𝗲𝗻𝘀𝗮: ${f.stats[4]} / 10
 
-▸ 𝑵𝒊𝒗𝒆𝒍: ${f.nivel}
-▸ 𝑹𝒂𝒏𝒈𝒐: ${f.rango}
+▸ 𝑵𝒊𝒗𝒆𝒍: ${lv(f.stats).n}
+▸ 𝑹𝒂𝒏𝒈𝒐: ${lv(f.stats).r}
 
 ${L}
 
@@ -189,7 +191,7 @@ ${f.historia}
 ${f.extra}`}
 
 async function form(id){
- let D={techs:[],stats:[5,5,5,5,5],img:"",nivel:"",rango:"",habilidad:"",autor:"",color:PAL[Math.floor(Math.random()*PAL.length)]};
+ let D={techs:[],stats:[6,6,7,6,7],img:"",nivel:"",rango:"",habilidad:"",autor:"",color:PAL[Math.floor(Math.random()*PAL.length)]};
  if(id){if(sessionStorage.getItem("ok")!==id){location.hash="#ficha/"+id;return}D=await db.get(id);D.color=D.color||PAL[0]}
  const KEY="borrador_"+(id||"nueva");let rec=false;
  try{const b=JSON.parse(localStorage.getItem(KEY)||"null");if(b&&b.d){D=b.d;D.color=D.color||PAL[0];rec=true}}catch(e){}
@@ -203,11 +205,14 @@ async function form(id){
  ${TXT.slice(0,2).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}">${esc(D[x[0]])}</textarea>`).join("")}
  <label style="color:var(--ink);font-weight:700">Técnicas</label><div id="techs"></div><button type="button" class="sec" id="addT">+ Añadir técnica</button>
  <label>${TXT[2][1]}</label><textarea data-k="limites">${esc(D.limites)}</textarea></fieldset>
- <fieldset><legend>Stats</legend><div class="two"><div>${STATS.map((n,i)=>`<div class="stat"><span>${n}</span><input type="range" min="0" max="10" value="${D.stats[i]}" data-s="${i}"><b>${D.stats[i]}</b></div>`).join("")}<div class="g">${inp("nivel","Nivel","type=number step=0.5")}${inp("rango","Rango")}</div></div><div id="rd"></div></div></fieldset>
+ <fieldset><legend>Stats</legend><div class="two"><div>${STATS.map((n,i)=>`<div class="stat"><span>${n}</span><input type="range" min="1" max="10" value="${D.stats[i]}" data-s="${i}"><b>${D.stats[i]}</b></div>`).join("")}<div class="lvbox" id="lvb"></div><p id="lvn" style="margin:8px 0 0;color:var(--mut);font-size:.85rem"></p></div><div id="rd"></div></div></fieldset>
  <fieldset><legend>Posición social, trasfondo y personalidad</legend>${TXT.slice(3).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}" ${x[0]=="historia"?'style="min-height:140px"':""}>${esc(D[x[0]])}</textarea>`).join("")}</fieldset>
  <fieldset><legend>Seguridad</legend><label>${id?"Tu PIN no se puede cambiar aquí.":"PIN para editar o eliminar esta ficha más adelante (¡no lo olvides!)"}</label><input id="pin" type="password" ${id?"disabled":""} placeholder="Mínimo 4 caracteres"></fieldset>
  <button id="sv">${id?"Guardar cambios":"Publicar ficha"}</button></form>`;
  const rd=()=>$("#rd").innerHTML=radar(D.stats);rd();
+ const lvu=()=>{D.stats=D.stats.map(v=>Math.max(1,v));const t=D.stats.reduce((a,b)=>a+b,0),l=lv(D.stats);D.nivel=l.n;D.rango=l.r;
+  $("#lvb").innerHTML=`Nivel <b>${l.n}</b> · Rango <b>${l.r}</b>`;
+  $("#lvn").textContent=`${t} puntos usados`+(t==32?" — justo los 32 iniciales.":t<32?` — te sobran ${32-t}, y los puntos sobrantes no se pueden usar después.`:" — superas los 32 iniciales: solo corresponde a personajes con progreso.")+(l.n<=5?" La habilidad pasiva es solo para personajes que superen el nivel 5.":"")+(D.stats[2]>=8?" Truco 8 o más: puede desarrollar intangibilidad.":"")};lvu();
  const ap=()=>{document.querySelector("form").style.cssText=theme(D.color);$("#col").value=D.color};ap();
  document.querySelectorAll(".swb").forEach(b=>b.onclick=()=>{D.color=b.dataset.c;ap();draft()});$("#col").oninput=e=>{D.color=e.target.value;ap();draft()};
  document.querySelectorAll("[data-k]").forEach(e=>e.oninput=()=>D[e.dataset.k]=e.value);
@@ -215,7 +220,7 @@ async function form(id){
  document.querySelector("form").addEventListener("input",draft);
  if($("#nd"))$("#nd").onclick=()=>{try{localStorage.removeItem(KEY)}catch(e){}form(id)};
  const vis=()=>{$("#w-anio").style.display=D.etapa===ETAPAS[0]?"":"none";$("#w-egreso").style.display=EG.includes(D.etapa)?"":"none"};document.querySelector("[data-k=etapa]").addEventListener("input",vis);vis();
- document.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{D.stats[r.dataset.s]=+r.value;r.nextElementSibling.textContent=r.value;rd()});
+ document.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{D.stats[r.dataset.s]=+r.value;r.nextElementSibling.textContent=r.value;rd();lvu()});
  $("#img").onchange=async e=>{if(e.target.files[0]){D.img=await compress(e.target.files[0]);$("#pv").src=D.img;$("#pv").style.display="block";draft()}};
  const tb=()=>{$("#techs").innerHTML=D.techs.map((t,i)=>`<div class="tech"><button type="button" class="red x" data-d="${i}">✕</button>${[["nombre","Nombre"],["desc","Descripción"],["alcance","Alcance"],["uso","Uso"],["duracion","Duración"],["enfr","Enfriamiento"]].map(([k,l])=>`<label>${l}</label>${k=="desc"?`<textarea data-t="${i}" data-f="${k}">${esc(t[k])}</textarea>`:`<input data-t="${i}" data-f="${k}" value="${esc(t[k])}">`}`).join("")}</div>`).join("");
   document.querySelectorAll("[data-t]").forEach(e=>e.oninput=()=>D.techs[e.dataset.t][e.dataset.f]=e.value);
