@@ -62,9 +62,12 @@ fieldset{background:var(--card);border:1px solid var(--line);border-radius:12px;
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,260px);gap:16px}@media(max-width:760px){.two{grid-template-columns:1fr}}
 .sheet{background:var(--card);border:2px solid var(--ink);border-radius:8px;overflow:hidden;margin-bottom:16px}
 .top{display:grid;grid-template-columns:1.1fr 1fr 1.3fr}@media(max-width:620px){.top{grid-template-columns:1fr}}
-.tbl div{display:grid;grid-template-columns:1fr 1fr;border-bottom:1.5px solid var(--ink);font-size:.82rem}.tbl div.h{display:block;text-align:center}
-.tbl span{padding:3px 6px;text-align:center;overflow-wrap:anywhere}.tbl span:first-child,.tbl .h{background:var(--acc);color:var(--on,#0b2417);font-weight:700}.tbl span:first-child{border-right:1.5px solid var(--ink)}
-.tbl,.pic{border-right:2px solid var(--ink)}.pic{min-height:220px;background:var(--bg)}.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.tbl{display:flex;flex-direction:column}
+.tbl>div{flex:1;display:grid;grid-template-columns:1fr 1fr;border-bottom:1.5px solid var(--ink);font-size:.85rem}.tbl>div:last-child{border-bottom:0}
+.tbl>div.h{display:flex;align-items:center;justify-content:center;background:var(--acc);color:var(--on,#0b2417);font-weight:700;letter-spacing:.03em;padding:4px 8px}
+.tbl>div>span{display:flex;align-items:center;justify-content:center;padding:4px 8px;text-align:center;overflow-wrap:anywhere}.tbl>div>span:first-child{background:var(--acc);color:var(--on,#0b2417);font-weight:700;border-right:1.5px solid var(--ink)}
+.tbl,.pic{border-right:2px solid var(--ink)}.pic{position:relative;min-height:320px;background:var(--bg)}.pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.dlb{padding:10px 14px;border-top:2px solid var(--ink);text-align:center}.dlb+.txt{border-top:0}
 .txt{padding:4px 18px 16px;border-top:2px solid var(--ink)}.txt h3{color:var(--acc2);margin:16px 0 4px}.txt p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .t{border-left:3px solid var(--acc);padding-left:10px;margin:8px 0}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
@@ -160,12 +163,32 @@ function gate(){
  $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key=="Enter")go()}}
 
 /* ---------- Utilidades ---------- */
-function radar(st){const cx=160,cy=140,R=95,pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+R*v/10*Math.cos(a),cy+R*v/10*Math.sin(a)]};let s="";
+function radar(st){const cx=200,cy=148,R=100,pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+R*v/10*Math.cos(a),cy+R*v/10*Math.sin(a)]};let s="";
  for(let k=2;k<=10;k+=2)s+=`<polygon points="${STATS.map((_,i)=>pt(i,k)).join(" ")}" fill="none" stroke="currentColor" stroke-opacity=".3"/>`;
  STATS.forEach((n,i)=>{const e=pt(i,10);s+=`<line x1="${cx}" y1="${cy}" x2="${e[0]}" y2="${e[1]}" stroke="currentColor" stroke-opacity=".2"/>`});
  s+=`<polygon points="${st.map((v,i)=>pt(i,v)).join(" ")}" fill="var(--fill)" stroke="var(--acc2)" stroke-width="2"/>`;
  STATS.forEach((n,i)=>{const p=pt(i,12.7);s+=`<text x="${p[0]}" y="${p[1]+4}" text-anchor="${p[0]<cx-5?"end":p[0]>cx+5?"start":"middle"}" font-size="11" font-weight="700" fill="currentColor">${n.toUpperCase()}</text>`});
- return`<svg viewBox="0 0 320 280">${s}</svg>`}
+ return`<svg viewBox="0 0 400 296">${s}</svg>`}
+async function pngFicha(f){
+ const cs=getComputedStyle($(".sheet")),v=n=>cs.getPropertyValue(n).trim(),acc=v("--acc")||"#4cc783",card=v("--card")||"#1c1a26",ink=v("--ink")||"#ece9f5",on=v("--on")||"#0b2417";
+ const W=1300,H=504,TW=390,IW=420,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
+ x.fillStyle=card;x.fillRect(0,0,W,H);
+ const st=f.stats,l=lv(st),rows=[["DATOS BÁSICOS"],["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["HABILIDAD",f.habilidad],["NIVEL",l.n],["RANGO",l.r],["REPARTICIÓN DE PUNTOS"],...STATS.map((n,i)=>[n.toUpperCase(),st[i]]),["TOTAL",st.reduce((a,b)=>a+b,0)]];
+ const rh=H/rows.length;x.textAlign="center";x.textBaseline="middle";
+ const fit=(t,w,sz,wt)=>{t=String(t??"")||"—";let s=sz;do{x.font=`${wt} ${s}px system-ui,sans-serif`;s--}while(x.measureText(t).width>w&&s>9);return t};
+ rows.forEach((r,i)=>{const y=i*rh;
+  if(r.length==1){x.fillStyle=acc;x.fillRect(0,y,TW,rh);x.fillStyle=on;x.fillText(fit(r[0],TW-16,17,"bold"),TW/2,y+rh/2)}
+  else{x.fillStyle=acc;x.fillRect(0,y,TW/2,rh);x.fillStyle=on;x.fillText(fit(r[0],TW/2-16,16,"bold"),TW/4,y+rh/2);x.fillStyle=ink;x.fillText(fit(r[1],TW/2-16,16,"normal"),TW*3/4,y+rh/2)}
+  x.strokeStyle=ink;x.lineWidth=1.5;x.strokeRect(0,y,TW,rh)});
+ await new Promise(r=>{if(!f.img)return r();const im=new Image();im.onload=()=>{const k=Math.max(IW/im.width,H/im.height),dw=im.width*k,dh=im.height*k;x.save();x.beginPath();x.rect(TW,0,IW,H);x.clip();x.drawImage(im,TW+(IW-dw)/2,(H-dh)/2,dw,dh);x.restore();r()};im.onerror=r;im.src=f.img});
+ if(!f.img){x.fillStyle=ink;x.globalAlpha=.4;x.font="16px system-ui,sans-serif";x.fillText("Sin imagen",TW+IW/2,H/2);x.globalAlpha=1}
+ const cx=1050,cy=H/2+10,R=115,pt=(i,k)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+R*k/10*Math.cos(a),cy+R*k/10*Math.sin(a)]};
+ x.lineWidth=1;x.strokeStyle=ink;x.globalAlpha=.35;for(let k=2;k<=10;k+=2){x.beginPath();STATS.forEach((_,i)=>{const p=pt(i,k);i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.stroke()}
+ STATS.forEach((_,i)=>{const p=pt(i,10);x.beginPath();x.moveTo(cx,cy);x.lineTo(p[0],p[1]);x.stroke()});x.globalAlpha=1;
+ x.beginPath();st.forEach((v,i)=>{const p=pt(i,v);i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.globalAlpha=.5;x.fillStyle=acc;x.fill();x.globalAlpha=1;x.strokeStyle=acc;x.lineWidth=3;x.stroke();
+ x.fillStyle=ink;x.font="bold 15px system-ui,sans-serif";STATS.forEach((n,i)=>{const p=pt(i,12);x.textAlign=p[0]<cx-5?"right":p[0]>cx+5?"left":"center";x.fillText(n.toUpperCase(),p[0],p[1])});
+ x.strokeStyle=ink;x.lineWidth=3;x.strokeRect(1.5,1.5,W-3,H-3);x.lineWidth=2;[TW,TW+IW].forEach(k=>{x.beginPath();x.moveTo(k,0);x.lineTo(k,H);x.stroke()});
+ const a=document.createElement("a");a.download=(`${f.nombre||"ficha"}-${f.apellido||""}`).replace(/\s+/g,"_")+".png";a.href=c.toDataURL("image/png");a.click()}
 function compress(file,m=520){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.78))};im.src=r.result};r.readAsDataURL(file)})}
 const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}${f.autor?" · por "+esc(f.autor):""}</small><br><span class="tag">Nv ${lv(f.stats).n} · ${lv(f.stats).r}</span>${etapaTag(f)?`<br><small>${esc(etapaTag(f))}</small>`:""}</div></a>`;
 const banner=()=>"";
@@ -217,10 +240,11 @@ async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p
  const info=FLD.filter(x=>f[x[0]]).map(x=>`<b>${x[1]}:</b> ${esc(f[x[0]])}`).join("<br>");
  const tech=(f.techs||[]).map(t=>`<div class="t"><b>${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${[["Alcance",t.alcance],["Uso",t.uso],["Duración",t.duracion],["Enfriamiento",t.enfr]].filter(x=>x[1]).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
  $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a><button class="sec" id="cp">Copiar en texto</button>${own?`<button class="sec" id="ed">Editar</button><button class="red" id="dl">Eliminar</button>`:""}</div><a href="${f.uid?"#perfil/"+f.uid:"#galeria"}" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:12px">${av(cu,36)}<span>Creada por <b>${esc(cu.username||"Anónimo")}</b></span></a>
- <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl"><div class="h"><span>DATOS BÁSICOS</span></div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h"><span>REPARTICIÓN DE PUNTOS</span></div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
+ <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl"><div class="h">DATOS BÁSICOS</div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h">REPARTICIÓN DE PUNTOS</div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
  <div class="pic">${f.img?`<img src="${f.img}" alt="">`:""}</div><div style="padding:6px;display:flex;align-items:center">${radar(f.stats)}</div></div>
- <div class="txt"><p>${info}</p>${fmList(f).length?`<h3>Formación y trayectoria</h3><p>${fmList(f).map(x=>`<b>${x[0]}:</b> ${esc(x[1])}`).join("<br>")}</p>`:""}${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
+ <div class="dlb"><button id="dp">⬇ Descargar ficha gráfica (PNG)</button></div><div class="txt"><p>${info}</p>${fmList(f).length?`<h3>Formación y trayectoria</h3><p>${fmList(f).map(x=>`<b>${x[0]}:</b> ${esc(x[1])}`).join("<br>")}</p>`:""}${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
  $("#cp").onclick=async()=>{await navigator.clipboard.writeText(textSheet(f));$("#cp").textContent="¡Copiado!"};
+ $("#dp").onclick=()=>pngFicha(f);
  if(own){$("#ed").onclick=()=>location.hash="#editar/"+id;$("#dl").onclick=async()=>{if(confirm("¿Eliminar para siempre?")){await db.del(id);cache=null;location.hash="#perfil/"+ME.id}}}
  const more=(await all()).filter(x=>x.uid&&x.uid===f.uid&&x.id!==id);
  if(more.length)$("#app").insertAdjacentHTML("beforeend",`<h2>Más fichas de ${esc(cu.username)}</h2><div class="grid">${more.map(cardHTML).join("")}</div>`);
