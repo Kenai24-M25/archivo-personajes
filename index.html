@@ -9,7 +9,7 @@
 :root{--bg:#f5f2ec;--card:#fff;--ink:#1d1b26;--mut:#6b6878;--line:#ddd8cc;--acc:#5fd68f;--acc2:#2a9a5f;--fill:rgba(95,214,143,.5);--hero:linear-gradient(135deg,#e9fff2,#efe9ff)}
 @media(prefers-color-scheme:dark){:root{--bg:#121119;--card:#1c1a26;--ink:#ece9f5;--mut:#9b97ad;--line:#36334a;--acc:#4cc783;--acc2:#6fe3a2;--fill:rgba(76,199,131,.45);--hero:linear-gradient(135deg,#17352a,#2a1f4a)}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{margin:0;background:var(--pg,var(--bg)) fixed;color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
 a{color:inherit;text-decoration:none}
 nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
 nav b{font:700 1.15rem Georgia,serif;margin-right:auto}
@@ -31,9 +31,11 @@ main{flex:1;min-width:0;padding:20px 0 60px}
 .rb{flex:1;min-width:0}.rt{font-weight:700;font-size:1.05rem}.r2 p{margin:2px 0 6px;color:var(--mut);font-size:.88rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.r2 .n{color:var(--mut);font-size:1.1rem}
 .tg{display:inline-block;border:1px solid var(--line);border-radius:12px;padding:0 9px;font-size:.74rem;font-weight:600;margin:0 4px 4px 0}
 .grid.big{grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:18px}
+.hero.bn{color:#fff}.hero.bn p{color:#eee}.hero.bn .btn.sec,.hero.bn button.sec{background:rgba(0,0,0,.45);color:#fff;border-color:rgba(255,255,255,.4)}
+.tm{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.sw2{height:72px;border-radius:12px;border:2px solid var(--line);font-weight:700;font-size:.82rem;padding:6px 8px;display:flex;align-items:flex-end;text-align:left}.sw2.on{border-color:var(--acc2);box-shadow:0 0 0 3px var(--acc)}
 .bg{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}.bi{display:block;aspect-ratio:3/4;background:var(--bg)}.bi img{width:100%;height:100%;object-fit:cover}
 .bn{padding:10px 14px;border-top:4px solid var(--acc)}.bn>a:first-child{font-weight:700;font-size:1.05rem}.bn small{display:block;color:var(--mut)}
-.both{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}@media(max-width:900px){.both{grid-template-columns:1fr}}
 .ed{display:inline-block;margin-top:4px;font-size:.8rem;border:1px solid var(--line);border-radius:8px;padding:2px 10px}
 .hero{background:var(--hero);border:1px solid var(--line);border-radius:18px;text-align:center;padding:56px 18px;margin-bottom:26px}
 .hero h1{font:700 2.4rem Georgia,serif;margin:0 0 8px}.hero p{color:var(--mut);max-width:560px;margin:0 auto 20px}
@@ -122,7 +124,9 @@ async function initDB(){
   save:async(o,id)=>id?(await F.setDoc(dc("fichas",id),o),id):(await F.addDoc(col("fichas"),o)).id,
   del:id=>F.deleteDoc(dc("fichas",id)),
   users:async()=>(await F.getDocs(col("usuarios"))).docs.map(mp),
-  setUser:(uid,d)=>F.setDoc(dc("usuarios",uid),d,{merge:true})};
+  setUser:(uid,d)=>F.setDoc(dc("usuarios",uid),d,{merge:true}),
+  banner:async uid=>{const s=await F.getDoc(dc("banners",uid));return s.exists()?(s.data().img||""):""},
+  setBanner:(uid,img)=>F.setDoc(dc("banners",uid),{img})};
 }
 const all=async(force)=>cache&&!force?cache:(cache=await db.list());
 async function loadUsers(){const u={};(await db.users()).forEach(x=>u[x.id]=x);USERS=u;if(ME)ME=USERS[ME.id]||ME}
@@ -138,7 +142,7 @@ async function start(u){
  if(!u){ME=null;nav();side();gate();return}
  await loadUsers();
  if(!USERS[u.uid]){await db.setUser(u.uid,{username:pn||u.email.split("@")[0],avatar:"",createdAt:Date.now(),lastSeen:Date.now()});await loadUsers()}
- ME=USERS[u.uid];beat();nav();side();route()}
+ ME=USERS[u.uid];if(ME.tema!=null&&ME.tema!==TEMA)setTema(ME.tema,false);beat();nav();side();route()}
 function gate(){
  $("#app").innerHTML=`<section class="hero"><h1>${TITULO}</h1><p>Inicia sesión o crea tu cuenta para entrar.</p></section><div class="auth"><div class="row" style="margin:0 0 8px"><button id="t1">Ingresar</button><button class="sec" id="t2">Registrarse</button></div><label>Usuario (será tu nombre de creador/a)</label><input id="u" maxlength="20" autocomplete="username"><label>Contraseña</label><input id="p" type="password" autocomplete="current-password"><div id="p2w" style="display:none"><label>Repite la contraseña</label><input id="p2" type="password"></div><p id="er" style="color:#d33;min-height:1.3em;margin:8px 0"></p><button id="go">Ingresar</button><p style="color:var(--mut);font-size:.8rem">Solo letras, números y _ (3 a 20). No hay recuperación de contraseña: guárdala bien.</p></div>`;
  let reg=false;const mode=r=>{reg=r;$("#p2w").style.display=r?"":"none";$("#go").textContent=r?"Crear cuenta":"Ingresar";$("#t1").className=r?"sec":"";$("#t2").className=r?"":"sec";$("#er").textContent=""};
@@ -161,12 +165,21 @@ function radar(st){const cx=160,cy=140,R=95,pt=(i,v)=>{const a=-Math.PI/2+i*2*Ma
 function compress(file,m=520){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.78))};im.src=r.result};r.readAsDataURL(file)})}
 const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}${f.autor?" · por "+esc(f.autor):""}</small><br><span class="tag">Nv ${lv(f.stats).n} · ${lv(f.stats).r}</span>${etapaTag(f)?`<br><small>${esc(etapaTag(f))}</small>`:""}</div></a>`;
 const banner=()=>"";
+const THEMES=[["Marfil","#f7f4ee","#ebe5d6","#ffffff","#1d1b26","#6b6878","#ddd8cc","#e9fff2","#efe9ff"],["Menta","#eafaf2","#cdeedd","#ffffff","#17302a","#587068","#bfe0cf","#d7f7e6","#e2f3ff"],["Cielo","#eaf3ff","#cfe3fa","#ffffff","#16263a","#5a6f87","#bcd2ea","#d8ecff","#e8e4ff"],["Lavanda","#f2ecff","#dccffa","#ffffff","#271c3d","#6c5f87","#d3c6ee","#e6dcff","#ffe4f2"],["Rosa","#fff0f6","#fad3e4","#ffffff","#3a1a2a","#8a5d70","#efc3d6","#ffdbe9","#ffe9d6"],["Durazno","#fff3e6","#fcdcc0","#ffffff","#3a2414","#8a6a52","#f0cfae","#ffe3c7","#ffd6d6"],["Gris humo","#e4e8ee","#c5ccd8","#f5f7fa","#1d2430","#5e6878","#b6bfcd","#d6dde8","#e2dcef"],["Crepúsculo","#44426b","#6a5590","#514f7c","#f1eefc","#c1bddb","#6d6a9a","#5a4f8c","#8a5a88"],["Océano","#123149","#1f5f78","#1a3f58","#e8f6fb","#a5c7d6","#2f6580","#14506a","#2a4f7a"],["Bosque","#10261c","#22503a","#173528","#e6f6ee","#9fc3b0","#2c5a45","#1a4a35","#2c3f5c"],["Vino","#2a1020","#55223f","#3a1829","#fbe9f3","#d0a3bc","#6b2f52","#4b1d3a","#2c1f55"],["Medianoche","#121119","#211c38","#1c1a26","#ece9f5","#9b97ad","#36334a","#17352a","#2a1f4a"],["Carbón","#08080b","#1b1b23","#14141a","#eeeef2","#9a9aa5","#2e2e38","#1c2a24","#23233a"]];
+let TEMA=-1;try{const q=localStorage.getItem("tema");TEMA=q==null?-1:+q}catch(e){}
+function applyTheme(i){const r=document.documentElement.style,t=THEMES[i];
+ if(!t){["--pg","--bg","--card","--ink","--mut","--line","--hero"].forEach(n=>r.removeProperty(n));return}
+ r.setProperty("--pg",`linear-gradient(160deg,${t[1]},${t[2]})`);r.setProperty("--bg",t[1]);r.setProperty("--card",t[3]);r.setProperty("--ink",t[4]);r.setProperty("--mut",t[5]);r.setProperty("--line",t[6]);r.setProperty("--hero",`linear-gradient(135deg,${t[7]},${t[8]})`)}
+function setTema(i,save=true){TEMA=i;applyTheme(i);try{localStorage.setItem("tema",i)}catch(e){}if(save&&ME)db.setUser(ME.id,{tema:i}).catch(()=>{})}
+applyTheme(TEMA);
+const themeHTML=()=>`<h2>🎨 Apariencia de la página</h2><p style="color:var(--mut);margin-top:-6px">Elige el fondo y los tonos de toda la página, de claros a oscuros. Cada persona ve la página con su propia elección.</p><div class="tm"><button class="sw2${TEMA<0?" on":""}" data-t="-1" style="background:linear-gradient(90deg,#f7f4ee 50%,#121119 50%);color:#fff"><span style="background:rgba(90,90,90,.85);border-radius:6px;padding:0 6px">Automático</span></button>${THEMES.map((t,i)=>`<button class="sw2${TEMA==i?" on":""}" data-t="${i}" style="background:linear-gradient(160deg,${t[1]},${t[2]});color:${t[4]}">${t[0]}</button>`).join("")}</div>`;
 let V="galeria";try{V=localStorage.getItem("vista")||"galeria"}catch(e){}
-const VN={lista:"Vista Lista",galeria:"Vista Galería",ambas:"Ver ambas"};
+if(V!="lista")V="galeria";
+const VN={lista:"Vista Lista",galeria:"Vista Galería"};
 const rowHTML=(f,i,ed)=>{const d=(f.descHab||f.pasiva||f.historia||"").slice(0,160),h="#ficha/"+f.id,l=lv(f.stats);return`<div class="r2" style="${theme(f.color)}"><a class="th" href="${h}">${f.img?`<img src="${f.img}" alt="">`:"✦"}</a><div class="rb"><a class="rt" href="${h}">${esc(f.nombre)} ${esc(f.apellido)}${f.habilidad?" — "+esc(f.habilidad):""}</a><p>${esc(d)||"Sin descripción."}</p><span class="tg" style="background:var(--acc);color:var(--on,#0b2417);border-color:transparent">Nv ${l.n} · ${l.r}</span>${[etapaTag(f),f.situacion,f.autor?"por "+f.autor:""].filter(Boolean).map(t=>`<span class="tg">${esc(t)}</span>`).join("")}${ed?`<br><a class="ed" href="#editar/${f.id}">✎ Editar</a>`:""}</div><span class="n">${String(i+1).padStart(2,"0")}</span></div>`};
 const bigHTML=(f,ed)=>`<div class="bg" style="${theme(f.color)}"><a class="bi" href="#ficha/${f.id}">${f.img?`<img src="${f.img}" alt="">`:""}</a><div class="bn"><a href="#ficha/${f.id}">${esc(f.nombre)} ${esc(f.apellido)}</a><small>${esc(f.habilidad)||"Sin habilidad"} · Nv ${lv(f.stats).n} ${lv(f.stats).r}${f.autor?" · por "+esc(f.autor):""}</small>${ed?`<a class="ed" href="#editar/${f.id}">✎ Editar</a>`:""}</div></div>`;
-const show=(l,ed)=>{const L=`<div class="lst">${l.map((f,i)=>rowHTML(f,i,ed)).join("")}</div>`;return V=="lista"?L:V=="ambas"?`<div class="both">${L}<div class="grid">${l.map(cardHTML).join("")}</div></div>`:`<div class="grid big">${l.map(f=>bigHTML(f,ed)).join("")}</div>`};
-const vbar=()=>`<div class="seg">${[["lista","☰ Vista Lista"],["galeria","▦ Vista Galería"],["ambas","◫ Ver ambas"]].map(([k,t])=>`<button data-v="${k}" class="${V==k?"on":""}">${t}</button>`).join("")}</div>`;
+const show=(l,ed)=>{const L=`<div class="lst">${l.map((f,i)=>rowHTML(f,i,ed)).join("")}</div>`;return V=="lista"?L:`<div class="grid big">${l.map(f=>bigHTML(f,ed)).join("")}</div>`};
+const vbar=()=>`<div class="seg">${[["lista","☰ Vista Lista"],["galeria","▦ Vista Galería"]].map(([k,t])=>`<button data-v="${k}" class="${V==k?"on":""}">${t}</button>`).join("")}</div>`;
 const bindV=fn=>document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{V=b.dataset.v;try{localStorage.setItem("vista",V)}catch(e){}document.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("on",x.dataset.v==V));fn()});
 
 /* ---------- Vistas ---------- */
@@ -187,8 +200,10 @@ async function galeria(){const a=await all(true);
   +grp("Por rango",["Dios","Alto","Élite","Medio","Bajo"].map(v=>sec("Rango "+v,r.filter(f=>lv(f.stats).r==v))).join(""))};
  ["#q","#fe","#fs"].forEach(s=>$(s).oninput=draw);draw();bindV(draw)}
 async function perfil(uid){const u=USERS[uid];if(!u){$("#app").innerHTML="<p>Usuario no encontrado.</p>";return}
- const a=(await all()).filter(f=>f.uid==uid),mine=uid==ME.id;
- $("#app").innerHTML=`<section class="hero" style="padding:28px 16px"><div style="display:flex;justify-content:center">${av(u,96)}</div><h1 style="font-size:1.8rem;margin:10px 0 4px">${esc(u.username)}</h1><p style="margin:0 0 10px"><i class="dot ${isOn(u)?"on":""}"></i> ${isOn(u)?"Activo ahora":"Visto "+ago(u.lastSeen)} · ${a.length} ficha${a.length==1?"":"s"}</p>${mine?`<label class="btn sec" style="cursor:pointer;margin:0">Cambiar foto de perfil<input type="file" id="pf" accept="image/*" hidden></label> <a class="btn" href="#crear">+ Nueva ficha</a>`:""}</section><h2>Fichas de ${esc(u.username)}</h2>${a.length?vbar()+show(a,mine):"<p>Aún no tiene fichas.</p>"}`;
+ const a=(await all()).filter(f=>f.uid==uid),mine=uid==ME.id,bn=await db.banner(uid).catch(()=>"");
+ $("#app").innerHTML=`<section class="hero${bn?" bn":""}" style="padding:${bn?"70px":"28px"} 16px;${bn?`background:linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.6)),url('${bn}') center/cover`:""}"><div style="display:flex;justify-content:center">${av(u,96)}</div><h1 style="font-size:1.8rem;margin:10px 0 4px">${esc(u.username)}</h1><p style="margin:0 0 10px"><i class="dot ${isOn(u)?"on":""}"></i> ${isOn(u)?"Activo ahora":"Visto "+ago(u.lastSeen)} · ${a.length} ficha${a.length==1?"":"s"}</p>${mine?`<label class="btn sec" style="cursor:pointer;margin:0">Cambiar foto de perfil<input type="file" id="pf" accept="image/*" hidden></label> <a class="btn" href="#crear">+ Nueva ficha</a> <label class="btn sec" style="cursor:pointer;margin:0">Cambiar banner<input type="file" id="bf" accept="image/*" hidden></label>${bn?` <button class="sec" id="bx">Quitar banner</button>`:""}`:""}</section>${mine?themeHTML():""}<h2>Fichas de ${esc(u.username)}</h2>${a.length?vbar()+show(a,mine):"<p>Aún no tiene fichas.</p>"}`;
+ if(mine){$("#bf").onchange=async e=>{if(e.target.files[0]){await db.setBanner(ME.id,await compress(e.target.files[0],1000));perfil(uid)}};if($("#bx"))$("#bx").onclick=async()=>{await db.setBanner(ME.id,"");perfil(uid)};
+  document.querySelectorAll(".sw2").forEach(b=>b.onclick=()=>{setTema(+b.dataset.t);document.querySelectorAll(".sw2").forEach(x=>x.classList.toggle("on",x===b))})}
  if(a.length)bindV(()=>perfil(uid));
  if(mine)$("#pf").onchange=async e=>{if(e.target.files[0]){await db.setUser(ME.id,{avatar:await compress(e.target.files[0],160)});await loadUsers();nav();side();perfil(uid)}}}
 async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p>Ficha no encontrada.</p>";return}
