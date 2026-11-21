@@ -14,7 +14,16 @@ a{color:inherit;text-decoration:none}
 nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
 nav b{font:700 1.15rem Georgia,serif;margin-right:auto}
 nav a{padding:6px 12px;border-radius:20px}nav a.on,nav a:hover{background:var(--acc);color:var(--on,#0b2417)}
-main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+.lay{max-width:1380px;margin:0 auto;display:flex;gap:20px;padding:0 16px}
+main{flex:1;min-width:0;padding:20px 0 60px}
+#side{width:250px;flex:none;padding-top:20px;position:sticky;top:58px;align-self:flex-start;max-height:calc(100vh - 70px);overflow:auto}
+@media(min-width:1000px){#side.hide{display:none}}
+@media(max-width:999px){#side{display:none}#side.show{display:block;position:fixed;right:10px;top:56px;z-index:9;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;max-height:80vh;box-shadow:0 8px 30px rgba(0,0,0,.3)}}
+.av{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--acc);color:var(--on,#0b2417);font-weight:700;overflow:hidden;flex:none}.av img{width:100%;height:100%;object-fit:cover}
+.dot{width:10px;height:10px;border-radius:50%;background:#9a9aa8;display:inline-block;flex:none}.dot.on{background:#2fbf71;box-shadow:0 0 6px #2fbf71}
+.us{display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:8px}.us:hover{background:var(--card)}.us span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.us small{display:block;color:var(--mut);font-size:.75rem}
+.auth{max-width:380px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.gt{margin:34px 0 0;padding-bottom:6px;border-bottom:2px solid var(--acc);font:700 1.25rem Georgia,serif}.sh{margin:18px 0 8px}
 .hero{background:var(--hero);border:1px solid var(--line);border-radius:18px;text-align:center;padding:56px 18px;margin-bottom:26px}
 .hero h1{font:700 2.4rem Georgia,serif;margin:0 0 8px}.hero p{color:var(--mut);max-width:560px;margin:0 auto 20px}
 .btn,button{cursor:pointer;border:0;border-radius:10px;padding:9px 18px;font:inherit;font-weight:600;background:var(--acc);color:var(--on,#0b2417);display:inline-block}
@@ -53,8 +62,8 @@ svg{max-width:100%}
 </style>
 </head>
 <body>
-<nav><b>✦ Archivo de Personajes</b><a href="#inicio" data-n="inicio">Inicio</a><a href="#galeria" data-n="galeria">Galería</a><a href="#crear" data-n="crear">Crear ficha</a></nav>
-<main id="app">Cargando…</main>
+<nav id="nav"></nav>
+<div class="lay"><main id="app">Cargando…</main><aside id="side"></aside></div>
 
 <script type="module">
 /* ============ CONFIGURACIÓN: pega aquí los datos de tu proyecto Firebase ============ */
@@ -79,20 +88,52 @@ const PAL=["#5fd68f","#a78bfa","#f472b6","#60a5fa","#fbbf24","#f87171","#2dd4bf"
 const theme=c=>{if(!c)return"";const n=parseInt(c.slice(1),16),l=.299*(n>>16)+.587*(n>>8&255)+.114*(n&255);return`--acc:${c};--acc2:color-mix(in srgb,${c} 65%,var(--ink));--fill:color-mix(in srgb,${c} 50%,transparent);--on:${l>150?"#111":"#fff"}`};
 const sha=async s=>{if(!crypto.subtle)return btoa(unescape(encodeURIComponent(s)));const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")};
 
-/* ---------- Base de datos (Firebase o modo local de prueba) ---------- */
-let db,local=!CFG.apiKey,cache=null;
+/* ---------- Base de datos y cuentas ---------- */
+let db,A,AU,cache=null,USERS={},ME=null,pn="";
+const mail=u=>u.toLowerCase()+"@aether-archivo.app";
+const isOn=u=>Date.now()-(u.lastSeen||0)<150000;
+const ago=t=>{if(!t)return"hace tiempo";const m=Math.floor((Date.now()-t)/60000);return m<1?"hace instantes":m<60?`hace ${m} min`:m<1440?`hace ${Math.floor(m/60)} h`:`hace ${Math.floor(m/1440)} d`};
+const av=(u,s)=>`<span class="av" style="width:${s}px;height:${s}px;font-size:${s*.45}px">${u&&u.avatar?`<img src="${u.avatar}" alt="">`:esc(((u&&u.username)||"?")[0].toUpperCase())}</span>`;
+const togSide=()=>{const e=$("#side");e.classList.toggle("show");e.classList.toggle("hide")};
 async function initDB(){
- if(local){const L=()=>JSON.parse(localStorage.getItem("fichas_local")||"[]"),S=a=>localStorage.setItem("fichas_local",JSON.stringify(a));
-  db={list:async()=>L().sort((a,b)=>b.createdAt-a.createdAt),get:async id=>L().find(x=>x.id==id)||null,
-  save:async(o,id)=>{const a=L();if(id){const i=a.findIndex(x=>x.id==id);a[i]={...o,id}}else{id=String(Date.now());a.push({...o,id})}S(a);return id},
-  del:async id=>S(L().filter(x=>x.id!=id))};return}
- const {initializeApp}=await import(FB+"firebase-app.js"),F=await import(FB+"firebase-firestore.js"),f=F.getFirestore(initializeApp(CFG)),col=F.collection(f,"fichas");
- db={list:async()=>(await F.getDocs(F.query(col,F.orderBy("createdAt","desc")))).docs.map(d=>({id:d.id,...d.data()})),
-  get:async id=>{const s=await F.getDoc(F.doc(f,"fichas",id));return s.exists()?{id,...s.data()}:null},
-  save:async(o,id)=>id?(await F.setDoc(F.doc(f,"fichas",id),o),id):(await F.addDoc(col,o)).id,
-  del:id=>F.deleteDoc(F.doc(f,"fichas",id))};
+ if(!CFG.apiKey)throw new Error("Falta configurar Firebase (CFG).");
+ const {initializeApp}=await import(FB+"firebase-app.js"),F=await import(FB+"firebase-firestore.js");
+ AU=await import(FB+"firebase-auth.js");
+ const app=initializeApp(CFG),f=F.getFirestore(app);A=AU.getAuth(app);
+ const col=n=>F.collection(f,n),dc=(n,i)=>F.doc(f,n,i),mp=d=>({id:d.id,...d.data()});
+ db={list:async()=>(await F.getDocs(F.query(col("fichas"),F.orderBy("createdAt","desc")))).docs.map(mp),
+  get:async id=>{const s=await F.getDoc(dc("fichas",id));return s.exists()?{id,...s.data()}:null},
+  save:async(o,id)=>id?(await F.setDoc(dc("fichas",id),o),id):(await F.addDoc(col("fichas"),o)).id,
+  del:id=>F.deleteDoc(dc("fichas",id)),
+  users:async()=>(await F.getDocs(col("usuarios"))).docs.map(mp),
+  setUser:(uid,d)=>F.setDoc(dc("usuarios",uid),d,{merge:true})};
 }
 const all=async(force)=>cache&&!force?cache:(cache=await db.list());
+async function loadUsers(){const u={};(await db.users()).forEach(x=>u[x.id]=x);USERS=u;if(ME)ME=USERS[ME.id]||ME}
+const beat=()=>{if(ME&&!document.hidden){if(USERS[ME.id])USERS[ME.id].lastSeen=Date.now();db.setUser(ME.id,{lastSeen:Date.now()}).catch(()=>{})}};
+const authErr=e=>({"auth/email-already-in-use":"Ese usuario ya existe. Elige otro.","auth/weak-password":"La contraseña debe tener mínimo 6 caracteres.","auth/invalid-credential":"Usuario o contraseña incorrectos.","auth/wrong-password":"Usuario o contraseña incorrectos.","auth/user-not-found":"Usuario o contraseña incorrectos.","auth/operation-not-allowed":"Falta activar Correo/contraseña en Firebase Authentication.","auth/too-many-requests":"Demasiados intentos. Espera un momento."}[e.code]||e.message);
+
+function nav(){$("#nav").innerHTML=`<b>✦ ${TITULO}</b>`+(ME?`<a href="#inicio" data-n="inicio">Inicio</a><a href="#galeria" data-n="galeria">Galería</a><a href="#crear" data-n="crear">Crear ficha</a><button class="sec" id="tg" style="padding:5px 12px">👥 Comunidad</button><a href="#perfil/${ME.id}" data-n="perfil" style="display:flex;align-items:center;gap:6px">${av(ME,26)}${esc(ME.username)}</a><button class="sec" id="out" style="padding:5px 12px">Salir</button>`:"");
+ if(ME){$("#tg").onclick=togSide;$("#out").onclick=()=>AU.signOut(A)}}
+function side(){if(!ME){$("#side").innerHTML="";return}
+ const us=Object.values(USERS).sort((a,b)=>(isOn(b)-isOn(a))||((b.lastSeen||0)-(a.lastSeen||0))),on=us.filter(isOn).length;
+ $("#side").innerHTML=`<h3 style="margin:0 0 2px">👥 Comunidad</h3><small style="color:var(--mut)">${on} activos · ${us.length-on} inactivos</small><div style="margin-top:8px">${us.map(u=>`<a class="us" href="#perfil/${u.id}">${av(u,34)}<span><b>${esc(u.username)}</b><small>${isOn(u)?"Activo ahora":"Visto "+ago(u.lastSeen)}</small></span><i class="dot ${isOn(u)?"on":""}"></i></a>`).join("")}</div>`}
+async function start(u){
+ if(!u){ME=null;nav();side();gate();return}
+ await loadUsers();
+ if(!USERS[u.uid]){await db.setUser(u.uid,{username:pn||u.email.split("@")[0],avatar:"",createdAt:Date.now(),lastSeen:Date.now()});await loadUsers()}
+ ME=USERS[u.uid];beat();nav();side();route()}
+function gate(){
+ $("#app").innerHTML=`<section class="hero"><h1>${TITULO}</h1><p>Inicia sesión o crea tu cuenta para entrar.</p></section><div class="auth"><div class="row" style="margin:0 0 8px"><button id="t1">Ingresar</button><button class="sec" id="t2">Registrarse</button></div><label>Usuario (será tu nombre de creador/a)</label><input id="u" maxlength="20" autocomplete="username"><label>Contraseña</label><input id="p" type="password" autocomplete="current-password"><div id="p2w" style="display:none"><label>Repite la contraseña</label><input id="p2" type="password"></div><p id="er" style="color:#d33;min-height:1.3em;margin:8px 0"></p><button id="go">Ingresar</button><p style="color:var(--mut);font-size:.8rem">Solo letras, números y _ (3 a 20). No hay recuperación de contraseña: guárdala bien.</p></div>`;
+ let reg=false;const mode=r=>{reg=r;$("#p2w").style.display=r?"":"none";$("#go").textContent=r?"Crear cuenta":"Ingresar";$("#t1").className=r?"sec":"";$("#t2").className=r?"":"sec";$("#er").textContent=""};
+ $("#t1").onclick=()=>mode(false);$("#t2").onclick=()=>mode(true);
+ const go=async()=>{const u=$("#u").value.trim(),p=$("#p").value,er=m=>$("#er").textContent=m;
+  if(!/^[A-Za-z0-9_]{3,20}$/.test(u))return er("Usuario: 3 a 20 caracteres, solo letras, números y _.");
+  if(p.length<6)return er("La contraseña debe tener mínimo 6 caracteres.");
+  if(reg&&p!==$("#p2").value)return er("Las contraseñas no coinciden.");
+  $("#go").disabled=true;er("");
+  try{if(reg){pn=u;await AU.createUserWithEmailAndPassword(A,mail(u),p)}else await AU.signInWithEmailAndPassword(A,mail(u),p)}catch(e){er(authErr(e));$("#go").disabled=false}};
+ $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key=="Enter")go()}}
 
 /* ---------- Utilidades ---------- */
 function radar(st){const cx=160,cy=140,R=95,pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+R*v/10*Math.cos(a),cy+R*v/10*Math.sin(a)]};let s="";
@@ -101,29 +142,45 @@ function radar(st){const cx=160,cy=140,R=95,pt=(i,v)=>{const a=-Math.PI/2+i*2*Ma
  s+=`<polygon points="${st.map((v,i)=>pt(i,v)).join(" ")}" fill="var(--fill)" stroke="var(--acc2)" stroke-width="2"/>`;
  STATS.forEach((n,i)=>{const p=pt(i,12.7);s+=`<text x="${p[0]}" y="${p[1]+4}" text-anchor="${p[0]<cx-5?"end":p[0]>cx+5?"start":"middle"}" font-size="11" font-weight="700" fill="currentColor">${n.toUpperCase()}</text>`});
  return`<svg viewBox="0 0 320 280">${s}</svg>`}
-function compress(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=520,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.78))};im.src=r.result};r.readAsDataURL(file)})}
-const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}</small><br><span class="tag">Nv ${lv(f.stats).n} · ${lv(f.stats).r}</span>${etapaTag(f)?`<br><small>${esc(etapaTag(f))}</small>`:""}</div></a>`;
-const banner=()=>local?`<div class="banner">⚠ Modo de prueba: las fichas se guardan solo en este navegador. Configura Firebase para que todos las vean.</div>`:"";
+function compress(file,m=520){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.78))};im.src=r.result};r.readAsDataURL(file)})}
+const cardHTML=f=>`<a class="card" href="#ficha/${f.id}" style="${theme(f.color)}"><div class="im">${f.img?`<img src="${f.img}" alt="">`:"✦"}</div><div class="in"><b>${esc(f.nombre)} ${esc(f.apellido)}</b><small>${esc(f.habilidad)||"Sin habilidad"}${f.autor?" · por "+esc(f.autor):""}</small><br><span class="tag">Nv ${lv(f.stats).n} · ${lv(f.stats).r}</span>${etapaTag(f)?`<br><small>${esc(etapaTag(f))}</small>`:""}</div></a>`;
+const banner=()=>"";
 
 /* ---------- Vistas ---------- */
-async function inicio(){const a=await all(),tot=a.length,ws=new Set(a.map(x=>x.autor).filter(Boolean)).size;
- $("#app").innerHTML=banner()+`<section class="hero"><h1>${TITULO}</h1><p>Crea la ficha de tu personaje, guárdala para siempre y explora los personajes de toda la comunidad.</p><a class="btn" href="#crear">Crear mi ficha</a> <a class="btn sec" href="#galeria">Ver galería</a><div class="counter"><div><b>${tot}</b>personajes</div><div><b>${ws}</b>creadores</div></div></section><h2>Últimos personajes</h2>${tot?`<div class="grid">${a.slice(0,4).map(cardHTML).join("")}</div>`:"<p>Aún no hay fichas. ¡Sé la primera persona en crear una!</p>"}`}
+async function inicio(){const a=await all(true),tot=a.length,cr=Object.keys(USERS).length,on=Object.values(USERS).filter(isOn).length;
+ $("#app").innerHTML=`<section class="hero"><h1>${TITULO}</h1><p>Hola, <b>${esc(ME.username)}</b>. Crea la ficha de tu personaje, guárdala para siempre y explora los personajes de toda la comunidad.</p><a class="btn" href="#crear">Crear mi ficha</a> <a class="btn sec" href="#galeria">Ver galería</a><div class="counter"><div><b>${tot}</b>personajes</div><div id="ct" style="cursor:pointer" title="Ver quién está activo"><b>${cr}</b>creadores ▾<br><small><i class="dot on"></i> ${on} activos</small></div></div></section><h2>Últimos personajes</h2>${tot?`<div class="grid">${a.slice(0,4).map(cardHTML).join("")}</div>`:"<p>Aún no hay fichas. ¡Sé la primera persona en crear una!</p>"}`;
+ $("#ct").onclick=togSide}
 async function galeria(){const a=await all(true);
- $("#app").innerHTML=banner()+`<h2>Galería</h2><div class="fl"><input id="q" placeholder="Buscar por nombre, habilidad, rango…" style="flex:1;min-width:200px"><select id="fe" style="width:auto"><option value="">Todas las etapas</option>${ETAPAS.map(x=>`<option>${x}</option>`).join("")}</select><select id="fs" style="width:auto"><option value="">Toda situación profesional</option>${SIT.map(x=>`<option>${x}</option>`).join("")}</select></div><div class="grid" id="gr" style="margin-top:14px"></div>`;
- const draw=()=>{const q=$("#q").value.toLowerCase();const r=a.filter(f=>[f.nombre,f.apellido,f.habilidad,lv(f.stats).r,f.autor].join(" ").toLowerCase().includes(q)&&(!$("#fe").value||f.etapa==$("#fe").value)&&(!$("#fs").value||f.situacion==$("#fs").value));$("#gr").innerHTML=r.map(cardHTML).join("")||"<p>Sin resultados.</p>"};["#q","#fe","#fs"].forEach(s=>$(s).oninput=draw);draw()}
+ $("#app").innerHTML=`<h2>Galería</h2><div class="fl"><input id="q" placeholder="Buscar por nombre, habilidad, creador, rango…" style="flex:1;min-width:200px"><select id="fe" style="width:auto"><option value="">Todas las etapas</option>${ETAPAS.map(x=>`<option>${x}</option>`).join("")}</select><select id="fs" style="width:auto"><option value="">Toda situación profesional</option>${SIT.map(x=>`<option>${x}</option>`).join("")}</select></div><div id="gr"></div>`;
+ const sec=(t,l)=>l.length?`<h3 class="sh">${t} <small style="color:var(--mut);font-weight:400">(${l.length})</small></h3><div class="grid">${l.map(cardHTML).join("")}</div>`:"";
+ const grp=(t,h)=>h?`<div class="gt">${t}</div>${h}`:"";
+ const draw=()=>{const q=$("#q").value.toLowerCase();const r=a.filter(f=>[f.nombre,f.apellido,f.habilidad,lv(f.stats).r,f.autor].join(" ").toLowerCase().includes(q)&&(!$("#fe").value||f.etapa==$("#fe").value)&&(!$("#fs").value||f.situacion==$("#fs").value));
+  if(!r.length){$("#gr").innerHTML="<p style='margin-top:14px'>Sin resultados.</p>";return}
+  const est=r.filter(f=>f.etapa===ETAPAS[0]);
+  $("#gr").innerHTML=sec("🕒 Más recientes",r.slice(0,8))
+  +grp("Por año de estudio",ANIOS.map(v=>sec(v,est.filter(f=>f.anio==v))).join("")+sec("Estudiantes sin año indicado",est.filter(f=>!ANIOS.includes(f.anio))))
+  +grp("Por etapa académica",ETAPAS.slice(1).map(v=>sec(v,r.filter(f=>f.etapa==v))).join("")+sec("Sin etapa indicada",r.filter(f=>!f.etapa)))
+  +grp("Por situación profesional",SIT.map(v=>sec(v,r.filter(f=>f.situacion==v))).join(""))
+  +grp("Por rango",["Dios","Alto","Élite","Medio","Bajo"].map(v=>sec("Rango "+v,r.filter(f=>lv(f.stats).r==v))).join(""))};
+ ["#q","#fe","#fs"].forEach(s=>$(s).oninput=draw);draw()}
+async function perfil(uid){const u=USERS[uid];if(!u){$("#app").innerHTML="<p>Usuario no encontrado.</p>";return}
+ const a=(await all(true)).filter(f=>f.uid==uid),mine=uid==ME.id;
+ $("#app").innerHTML=`<section class="hero" style="padding:28px 16px"><div style="display:flex;justify-content:center">${av(u,96)}</div><h1 style="font-size:1.8rem;margin:10px 0 4px">${esc(u.username)}</h1><p style="margin:0 0 10px"><i class="dot ${isOn(u)?"on":""}"></i> ${isOn(u)?"Activo ahora":"Visto "+ago(u.lastSeen)} · ${a.length} ficha${a.length==1?"":"s"}</p>${mine?`<label class="btn sec" style="cursor:pointer;margin:0">Cambiar foto de perfil<input type="file" id="pf" accept="image/*" hidden></label> <a class="btn" href="#crear">+ Nueva ficha</a>`:""}</section><h2>Fichas de ${esc(u.username)}</h2>${a.length?`<div class="grid">${a.map(f=>mine?`<div>${cardHTML(f)}<a class="btn sec" href="#editar/${f.id}" style="display:block;text-align:center;margin-top:6px;padding:4px">✎ Editar</a></div>`:cardHTML(f)).join("")}</div>`:"<p>Aún no tiene fichas.</p>"}`;
+ if(mine)$("#pf").onchange=async e=>{if(e.target.files[0]){await db.setUser(ME.id,{avatar:await compress(e.target.files[0],160)});await loadUsers();nav();side();perfil(uid)}}}
 async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p>Ficha no encontrada.</p>";return}
+ const own=!!f.uid&&f.uid===ME.id,cu=USERS[f.uid]||{username:f.autor};
  const tot=f.stats.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["HABILIDAD",f.habilidad],["NIVEL",lv(f.stats).n],["RANGO",lv(f.stats).r]];
  const sec=(t,v)=>v?`<h3>${t}</h3><p>${esc(v)}</p>`:"";
  const info=FLD.filter(x=>f[x[0]]).map(x=>`<b>${x[1]}:</b> ${esc(f[x[0]])}`).join("<br>");
  const tech=(f.techs||[]).map(t=>`<div class="t"><b>${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${[["Alcance",t.alcance],["Uso",t.uso],["Duración",t.duracion],["Enfriamiento",t.enfr]].filter(x=>x[1]).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
- $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a><button class="sec" id="cp">Copiar en texto</button><button class="sec" id="ed">Editar</button><button class="red" id="dl">Eliminar</button></div>
+ $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a><button class="sec" id="cp">Copiar en texto</button>${own?`<button class="sec" id="ed">Editar</button><button class="red" id="dl">Eliminar</button>`:""}</div><a href="${f.uid?"#perfil/"+f.uid:"#galeria"}" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:12px">${av(cu,36)}<span>Creada por <b>${esc(cu.username||"Anónimo")}</b></span></a>
  <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl"><div class="h"><span>DATOS BÁSICOS</span></div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h"><span>REPARTICIÓN DE PUNTOS</span></div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
  <div class="pic">${f.img?`<img src="${f.img}" alt="">`:""}</div><div style="padding:6px;display:flex;align-items:center">${radar(f.stats)}</div></div>
  <div class="txt"><p>${info}</p>${fmList(f).length?`<h3>Formación y trayectoria</h3><p>${fmList(f).map(x=>`<b>${x[0]}:</b> ${esc(x[1])}`).join("<br>")}</p>`:""}${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
  $("#cp").onclick=async()=>{await navigator.clipboard.writeText(textSheet(f));$("#cp").textContent="¡Copiado!"};
- const pin=async()=>{const p=prompt("PIN de la ficha:");return p&&(await sha(p))===f.pinHash};
- $("#ed").onclick=async()=>{if(await pin()){sessionStorage.setItem("ok",id);location.hash="#editar/"+id}else alert("PIN incorrecto")};
- $("#dl").onclick=async()=>{if(await pin()&&confirm("¿Eliminar para siempre?")){await db.del(id);cache=null;location.hash="#galeria"}else alert("Cancelado o PIN incorrecto")};
+ if(own){$("#ed").onclick=()=>location.hash="#editar/"+id;$("#dl").onclick=async()=>{if(confirm("¿Eliminar para siempre?")){await db.del(id);cache=null;location.hash="#perfil/"+ME.id}}}
+ const more=(await all()).filter(x=>x.uid&&x.uid===f.uid&&x.id!==id);
+ if(more.length)$("#app").insertAdjacentHTML("beforeend",`<h2>Más fichas de ${esc(cu.username)}</h2><div class="grid">${more.map(cardHTML).join("")}</div>`);
 }
 function textSheet(f){const L="════════════════════════════════════",t=(f.techs||[]).map(t=>`${t.nombre}\n${t.desc}\nAlcance: ${t.alcance}\nUso: ${t.uso}\nDuración: ${t.duracion}\nEnfriamiento: ${t.enfr}`).join("\n\n");
  return`╔════════════════════════════════════╗
@@ -191,15 +248,15 @@ ${f.historia}
 ${f.extra}`}
 
 async function form(id){
- let D={techs:[],stats:[6,6,7,6,7],img:"",nivel:"",rango:"",habilidad:"",autor:"",color:PAL[Math.floor(Math.random()*PAL.length)]};
- if(id){if(sessionStorage.getItem("ok")!==id){location.hash="#ficha/"+id;return}D=await db.get(id);D.color=D.color||PAL[0]}
- const KEY="borrador_"+(id||"nueva");let rec=false;
+ let D={techs:[],stats:[6,6,7,6,7],img:"",nivel:"",rango:"",habilidad:"",autor:ME.username,uid:ME.id,color:PAL[Math.floor(Math.random()*PAL.length)]};
+ if(id){D=await db.get(id);if(!D||D.uid!==ME.id){location.hash="#ficha/"+id;return}D.color=D.color||PAL[0]}
+ const KEY="borrador_"+ME.id+"_"+(id||"nueva");let rec=false;
  try{const b=JSON.parse(localStorage.getItem(KEY)||"null");if(b&&b.d){D=b.d;D.color=D.color||PAL[0];rec=true}}catch(e){}
  const sel=(k,l,o)=>`<div><label>${l}</label><select data-k="${k}"><option value="">— Elige —</option>${o.map(x=>`<option ${D[k]==x?"selected":""}>${x}</option>`).join("")}</select></div>`;
  const inp=(k,l,t="")=>`<div><label>${l}</label><input data-k="${k}" ${t} value="${esc(D[k])}"></div>`;
  $("#app").innerHTML=banner()+`<h2>${id?"Editar ficha":"Crear ficha"}</h2>${rec?`<div class="banner">✔ Recuperamos tu borrador. Puedes seguir donde lo dejaste (por seguridad, el PIN hay que escribirlo otra vez). <button type="button" class="sec" id="nd" style="padding:3px 10px;margin-left:6px">Empezar de cero</button></div>`:""}<p style="margin:-6px 0 12px"><small id="as" style="color:var(--mut)">Tu progreso se guarda solo mientras escribes.</small></p><form onsubmit="return false">
  <fieldset><legend>Perfil</legend><label>Color de la ficha</label><div class="sw">${PAL.map(c=>`<button type="button" class="swb" data-c="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="col" value="${D.color}"></div><label>Imagen del personaje</label><input type="file" id="img" accept="image/*"><img id="pv" src="${D.img}" style="max-height:160px;margin-top:8px;border-radius:8px;${D.img?"":"display:none"}">
- <div class="g">${FLD.map(x=>inp(x[0],x[1])).join("")}${inp("autor","Tu nombre de usuario (creador/a)")}</div></fieldset>
+ <div class="g">${FLD.map(x=>inp(x[0],x[1])).join("")}</div></fieldset>
  <fieldset><legend>Formación y trayectoria</legend><div class="g">${sel("etapa","Etapa académica",ETAPAS)}<div id="w-anio">${sel("anio","Año de estudio",ANIOS)}</div>${inp("ingreso","Año de ingreso","type=number min=1950 max=2100")}<div id="w-egreso">${inp("egreso","Año de egreso","type=number min=1950 max=2100")}</div>${sel("situacion","Situación profesional",SIT)}${inp("experiencia","Años de experiencia","type=number min=0")}${inp("titulo","Título o grado obtenido")}${inp("institucion","Institución")}</div><label>Estudios adicionales (cursos, certificaciones, posgrados)</label><textarea data-k="adicionales">${esc(D.adicionales)}</textarea></fieldset>
  <fieldset><legend>Descripción de combate</legend><div class="g">${inp("habilidad","Nombre de la habilidad")}</div>
  ${TXT.slice(0,2).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}">${esc(D[x[0]])}</textarea>`).join("")}
@@ -207,7 +264,6 @@ async function form(id){
  <label>${TXT[2][1]}</label><textarea data-k="limites">${esc(D.limites)}</textarea></fieldset>
  <fieldset><legend>Stats</legend><div class="two"><div>${STATS.map((n,i)=>`<div class="stat"><span>${n}</span><input type="range" min="1" max="10" value="${D.stats[i]}" data-s="${i}"><b>${D.stats[i]}</b></div>`).join("")}<div class="lvbox" id="lvb"></div><p id="lvn" style="margin:8px 0 0;color:var(--mut);font-size:.85rem"></p></div><div id="rd"></div></div></fieldset>
  <fieldset><legend>Posición social, trasfondo y personalidad</legend>${TXT.slice(3).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}" ${x[0]=="historia"?'style="min-height:140px"':""}>${esc(D[x[0]])}</textarea>`).join("")}</fieldset>
- <fieldset><legend>Seguridad</legend><label>${id?"Tu PIN no se puede cambiar aquí.":"PIN para editar o eliminar esta ficha más adelante (¡no lo olvides!)"}</label><input id="pin" type="password" ${id?"disabled":""} placeholder="Mínimo 4 caracteres"></fieldset>
  <button id="sv">${id?"Guardar cambios":"Publicar ficha"}</button></form>`;
  const rd=()=>$("#rd").innerHTML=radar(D.stats);rd();
  const lvu=()=>{D.stats=D.stats.map(v=>Math.max(1,v));const t=D.stats.reduce((a,b)=>a+b,0),l=lv(D.stats);D.nivel=l.n;D.rango=l.r;
@@ -228,16 +284,19 @@ async function form(id){
  $("#addT").onclick=()=>{D.techs.push({nombre:"",desc:"",alcance:"",uso:"",duracion:"",enfr:""});tb();draft()};
  $("#sv").onclick=async()=>{
   if(!D.nombre){alert("Escribe al menos los nombres del personaje.");return}
-  if(!id){const p=$("#pin").value;if(p.length<4){alert("El PIN debe tener mínimo 4 caracteres.");return}D.pinHash=await sha(p);D.createdAt=Date.now()}
+  if(!id)D.createdAt=Date.now();D.uid=ME.id;D.autor=ME.username;
   $("#sv").textContent="Guardando…";const {id:_,...o}=D;
   try{const nid=await db.save(o,id);cache=null;sessionStorage.removeItem("ok");try{localStorage.removeItem(KEY)}catch(e){}location.hash="#ficha/"+nid}catch(e){alert("Error al guardar: "+e.message);$("#sv").textContent="Reintentar"}};
 }
 
 /* ---------- Router ---------- */
-async function route(){const [p,id]=(location.hash.slice(1)||"inicio").split("/");
+async function route(){if(!ME){gate();return}const [p,id]=(location.hash.slice(1)||"inicio").split("/");
  document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.n==p));scrollTo(0,0);
- try{({inicio,galeria,crear:()=>form(),ficha:()=>ficha(id),editar:()=>form(id)}[p]||inicio)()}catch(e){$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}}
-try{await initDB();addEventListener("hashchange",route);route()}catch(e){$("#app").innerHTML="<p>No se pudo conectar con la base de datos: "+esc(e.message)+"</p>"}
+ try{await ({inicio,galeria,crear:()=>form(),ficha:()=>ficha(id),editar:()=>form(id),perfil:()=>perfil(id)}[p]||inicio)()}catch(e){$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}}
+try{await initDB();addEventListener("hashchange",route);
+ AU.onAuthStateChanged(A,u=>start(u).catch(e=>{$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}));
+ setInterval(async()=>{if(ME&&!document.hidden){beat();try{await loadUsers();side()}catch(e){}}},60000);
+ document.addEventListener("visibilitychange",beat)}catch(e){$("#app").innerHTML="<p>No se pudo conectar: "+esc(e.message)+"</p>"}
 </script>
 </body>
 </html>
