@@ -67,6 +67,13 @@ fieldset{background:var(--card);border:1px solid var(--line);border-radius:12px;
 .tbl>div.h{display:flex;align-items:center;justify-content:center;background:var(--acc);color:var(--on,#0b2417);font-weight:700;letter-spacing:.03em;padding:4px 8px}
 .tbl>div>span{display:flex;align-items:center;justify-content:center;padding:4px 8px;text-align:center;overflow-wrap:anywhere}.tbl>div>span:first-child{background:var(--acc);color:var(--on,#0b2417);font-weight:700;border-right:1.5px solid var(--ink)}
 .tbl,.pic{border-right:2px solid var(--ink)}.pic{position:relative;min-height:320px;background:var(--bg)}.pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:16px}
+.fo{margin:0;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;border-top:4px solid var(--acc)}.fo img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;cursor:zoom-in}.fo figcaption{padding:10px 12px;font-size:.9rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.cms{border-top:1px solid var(--line);padding:8px 12px;font-size:.84rem}.cl{max-height:150px;overflow:auto}.cm{display:flex;justify-content:space-between;gap:6px;margin:3px 0;overflow-wrap:anywhere}.cm button{padding:0 8px;font-size:.7rem;flex:none}.cf{display:flex;gap:6px;margin-top:6px}.cf input{padding:5px 8px}.cf button{padding:4px 12px;font-size:.8rem}
+.fbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}details.fadd summary{list-style:none;cursor:pointer}details.fadd summary::-webkit-details-marker{display:none}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}.lb img{max-width:100%;max-height:78vh;border-radius:10px}.lb p{color:#fff;max-width:700px;text-align:center;margin-top:12px;white-space:pre-wrap}
+.bdg{display:inline-block;padding:1px 10px;border-radius:12px;font-weight:700;font-size:.78rem;color:#fff;margin:1px 2px 1px 0}.b1{background:#8b5cf6}.b2{background:#ef4444}.b3{background:#3b82f6}.b4{background:#22c55e}.b5{background:#eab308;color:#111}
+.th2{display:flex;align-items:center;gap:6px;margin-bottom:4px}.th2 b{flex:none}.th2 select{width:auto;flex:1}.th2 button{padding:2px 9px}.tech .th2 .x{position:static}
 .dlb{padding:10px 14px;border-top:2px solid var(--ink);text-align:center}.dlb+.txt{border-top:0}
 .txt{padding:4px 18px 16px;border-top:2px solid var(--ink)}.txt h3{color:var(--acc2);margin:16px 0 4px}.txt p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .t{border-left:3px solid var(--acc);padding-left:10px;margin:8px 0}
@@ -108,6 +115,11 @@ const SIT=["Sin ejercer todavía","Practicante o pasante","Profesional en ejerci
 const bd=s=>[...s].map(c=>{const k=c.charCodeAt(0);return k>=65&&k<=90?String.fromCodePoint(0x1D400+k-65):k>=97&&k<=122?String.fromCodePoint(0x1D41A+k-97):c}).join("");
 const fmList=f=>[["Etapa académica",f.etapa],["Año de estudio",f.etapa===ETAPAS[0]?f.anio:""],["Año de ingreso",f.ingreso],["Año de egreso",EG.includes(f.etapa)?f.egreso:""],["Título o grado",f.titulo],["Institución",f.institucion],["Situación profesional",f.situacion],["Años de experiencia",f.experiencia],["Estudios adicionales",f.adicionales]].filter(x=>x[1]);
 const lv=st=>{const n=Math.round(st.reduce((a,b)=>a+Math.min(b,10),0)/5*10)/10;return{n:n.toFixed(1),r:n<2?"Bajo":n<3.5?"Medio":n<5?"Élite":n<6?"Alto":"Dios"}};
+const CATS=[["Base","🟣"],["Ataque","🔴"],["Defensa","🔵"],["Movilidad","🟢"],["Definitiva","🟡"]];
+const QUAL=["Cantidad","Alcance o área","Duración","Objetivos"];
+const catIc=c=>(CATS.find(x=>x[0]==c)||["","⚪"])[1];
+const techHead=(t,i)=>`#${String(i+1).padStart(2,"0")}${t.cat?` ${catIc(t.cat)} ${t.cat.toUpperCase()}`:""}`;
+const techFields=t=>[["Alcance",t.alcance],["Uso",t.uso],["Duración",t.cat=="Base"?"Indefinida":t.duracion],["Enfriamiento",t.cat=="Base"?"Ninguno":t.enfr],["Cualidad que excede",t.cat=="Definitiva"?t.cualidad:""],["Límite normal → definitivo",t.cat=="Definitiva"&&(t.limNormal||t.limDef)?`${t.limNormal||"—"} → ${t.limDef||"—"}`:""],["Secuela",t.cat=="Definitiva"?t.secuela:""]].filter(x=>x[1]);
 const etapaTag=f=>f.etapa===ETAPAS[0]?(f.anio||"Estudiante"):(f.etapa||"");
 const PAL=["#5fd68f","#a78bfa","#f472b6","#60a5fa","#fbbf24","#f87171","#2dd4bf","#fb923c"];
 const theme=c=>{if(!c)return"";const n=parseInt(c.slice(1),16),l=.299*(n>>16)+.587*(n>>8&255)+.114*(n&255);return`--acc:${c};--acc2:color-mix(in srgb,${c} 65%,var(--ink));--fill:color-mix(in srgb,${c} 50%,transparent);--on:${l>150?"#111":"#fff"}`};
@@ -133,7 +145,11 @@ async function initDB(){
   users:async()=>(await F.getDocs(col("usuarios"))).docs.map(mp),
   setUser:(uid,d)=>F.setDoc(dc("usuarios",uid),d,{merge:true}),
   banner:async uid=>{const s=await F.getDoc(dc("banners",uid));return s.exists()?(s.data().img||""):""},
-  setBanner:(uid,img)=>F.setDoc(dc("banners",uid),{img})};
+  setBanner:(uid,img)=>F.setDoc(dc("banners",uid),{img}),
+  fotos:async fid=>(await F.getDocs(F.query(col("fotos"),F.where("fichaId","==",fid)))).docs.map(mp),
+  addFoto:o=>F.addDoc(col("fotos"),o),setFoto:(id,d)=>F.updateDoc(dc("fotos",id),d),delFoto:id=>F.deleteDoc(dc("fotos",id)),
+  coms:async fid=>(await F.getDocs(F.query(col("comentarios"),F.where("fichaId","==",fid)))).docs.map(mp),
+  addCom:o=>F.addDoc(col("comentarios"),o),delCom:id=>F.deleteDoc(dc("comentarios",id))};
 }
 const all=async(force)=>cache&&!force?cache:(cache=await db.list());
 async function loadUsers(){const u={};(await db.users()).forEach(x=>u[x.id]=x);USERS=u;if(ME)ME=USERS[ME.id]||ME}
@@ -238,18 +254,37 @@ async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p
  const tot=f.stats.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["HABILIDAD",f.habilidad],["NIVEL",lv(f.stats).n],["RANGO",lv(f.stats).r]];
  const sec=(t,v)=>v?`<h3>${t}</h3><p>${esc(v)}</p>`:"";
  const info=FLD.filter(x=>f[x[0]]).map(x=>`<b>${x[1]}:</b> ${esc(f[x[0]])}`).join("<br>");
- const tech=(f.techs||[]).map(t=>`<div class="t"><b>${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${[["Alcance",t.alcance],["Uso",t.uso],["Duración",t.duracion],["Enfriamiento",t.enfr]].filter(x=>x[1]).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
+ const tech=(f.techs||[]).map((t,i)=>`<div class="t"><b>${techHead(t,i)} · ${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${techFields(t).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
  $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a><button class="sec" id="cp">Copiar en texto</button>${own?`<button class="sec" id="ed">Editar</button><button class="red" id="dl">Eliminar</button>`:""}</div><a href="${f.uid?"#perfil/"+f.uid:"#galeria"}" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:12px">${av(cu,36)}<span>Creada por <b>${esc(cu.username||"Anónimo")}</b></span></a>
  <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl"><div class="h">DATOS BÁSICOS</div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h">REPARTICIÓN DE PUNTOS</div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
  <div class="pic">${f.img?`<img src="${f.img}" alt="">`:""}</div><div style="padding:6px;display:flex;align-items:center">${radar(f.stats)}</div></div>
  <div class="dlb"><button id="dp">⬇ Descargar ficha gráfica (PNG)</button></div><div class="txt"><p>${info}</p>${fmList(f).length?`<h3>Formación y trayectoria</h3><p>${fmList(f).map(x=>`<b>${x[0]}:</b> ${esc(x[1])}`).join("<br>")}</p>`:""}${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
  $("#cp").onclick=async()=>{await navigator.clipboard.writeText(textSheet(f));$("#cp").textContent="¡Copiado!"};
  $("#dp").onclick=()=>pngFicha(f);
- if(own){$("#ed").onclick=()=>location.hash="#editar/"+id;$("#dl").onclick=async()=>{if(confirm("¿Eliminar para siempre?")){await db.del(id);cache=null;location.hash="#perfil/"+ME.id}}}
+ if(own){$("#ed").onclick=()=>location.hash="#editar/"+id;$("#dl").onclick=async()=>{if(confirm("¿Eliminar para siempre?")){try{for(const c of await db.coms(id))await db.delCom(c.id)}catch(e){}for(const q of await db.fotos(id))await db.delFoto(q.id);await db.del(id);cache=null;location.hash="#perfil/"+ME.id}}}
+ $("#app").insertAdjacentHTML("beforeend",`<section id="gal" style="${theme(f.color)}"></section>`);
+ const FM=12,lb=q=>{const d=document.createElement("div");d.className="lb";d.innerHTML=`<img src="${q.img}" alt=""><p>${esc(q.caption)}</p>`;d.onclick=()=>d.remove();document.body.appendChild(d)};
+ const gal=async()=>{let fs=[];try{fs=(await db.fotos(id)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))}catch(e){$("#gal").innerHTML="";return}
+  let cs=[];try{cs=await db.coms(id)}catch(e){}
+  $("#gal").innerHTML=(fs.length||own?`<h2>📸 Galería del personaje <small style="color:var(--mut);font-weight:400">(${fs.length})</small></h2>`:"")
+  +(own?(fs.length<FM?`<details class="fadd"><summary class="btn sec" style="display:inline-block">+ Agregar foto</summary><div class="fbox"><label>Foto</label><input type="file" id="fi" accept="image/*"><label>¿Qué está haciendo el personaje en esta foto? (opcional)</label><textarea id="fc" maxlength="400" placeholder="Ej.: practicando con su técnica en la azotea de la universidad…"></textarea><div style="margin-top:10px"><button id="fu">Subir foto</button> <small id="fm" style="color:var(--mut)"></small></div></div></details>`:`<p style="color:var(--mut)">Llegaste al máximo de ${FM} fotos.</p>`):"")
+  +(fs.length?`<div class="fg" style="margin-top:12px">${fs.map(q=>`<figure class="fo"><img src="${q.img}" data-z="${q.id}" alt=""><figcaption>${esc(q.caption)||"<i style='color:var(--mut)'>Sin descripción</i>"}${own?`<div style="margin-top:6px"><button class="sec" data-e="${q.id}" style="padding:2px 10px;font-size:.78rem">Editar texto</button> <button class="red" data-x="${q.id}" style="padding:2px 10px;font-size:.78rem">Eliminar</button></div>`:""}</figcaption><div class="cms"><div class="cl">${cs.filter(c=>c.fotoId==q.id).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)).map(c=>`<div class="cm"><span><a href="#perfil/${c.uid}"><b>${esc(c.autor)}</b></a> ${esc(c.texto)}</span>${c.uid===ME.id||own?`<button class="red" data-dc="${c.id}" title="Borrar comentario">✕</button>`:""}</div>`).join("")||"<small style='color:var(--mut)'>Sé la primera persona en comentar.</small>"}</div><div class="cf"><input data-ci="${q.id}" maxlength="300" placeholder="Comenta esta foto…"><button data-cs="${q.id}">Enviar</button></div></div></figure>`).join("")}</div>`:"");
+  const by=i=>fs.find(q=>q.id==i);
+  document.querySelectorAll("[data-z]").forEach(i=>i.onclick=()=>lb(by(i.dataset.z)));
+  document.querySelectorAll("[data-e]").forEach(b=>b.onclick=async()=>{const q=by(b.dataset.e),t=prompt("Describe qué está haciendo el personaje:",q.caption||"");if(t!==null){await db.setFoto(q.id,{caption:t.trim().slice(0,400)});gal()}});
+  document.querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{if(confirm("¿Eliminar esta foto?")){try{for(const c of cs.filter(c=>c.fotoId==b.dataset.x))await db.delCom(c.id)}catch(e){}await db.delFoto(b.dataset.x);gal()}});
+  document.querySelectorAll("[data-cs]").forEach(b=>b.onclick=async()=>{const i=document.querySelector(`[data-ci="${b.dataset.cs}"]`),t=i.value.trim();if(!t)return;b.disabled=true;
+   try{await db.addCom({fotoId:b.dataset.cs,fichaId:id,uid:ME.id,autor:ME.username,texto:t.slice(0,300),createdAt:Date.now()});gal()}catch(e){alert("No se pudo comentar: "+e.message);b.disabled=false}});
+  document.querySelectorAll("[data-ci]").forEach(i=>i.onkeydown=e=>{if(e.key=="Enter")document.querySelector(`[data-cs="${i.dataset.ci}"]`).click()});
+  document.querySelectorAll("[data-dc]").forEach(b=>b.onclick=async()=>{if(confirm("¿Borrar este comentario?")){await db.delCom(b.dataset.dc);gal()}});
+  if($("#fu"))$("#fu").onclick=async()=>{const fl=$("#fi").files[0];if(!fl){$("#fm").textContent="Elige una foto primero.";return}
+   $("#fu").disabled=true;$("#fm").textContent="Subiendo…";
+   try{await db.addFoto({fichaId:id,uid:ME.id,img:await compress(fl,900),caption:$("#fc").value.trim(),createdAt:Date.now()});gal()}catch(e){$("#fm").textContent="Error: "+e.message;$("#fu").disabled=false}}};
+ await gal();
  const more=(await all()).filter(x=>x.uid&&x.uid===f.uid&&x.id!==id);
  if(more.length)$("#app").insertAdjacentHTML("beforeend",`<h2>Más fichas de ${esc(cu.username)}</h2><div class="grid">${more.map(cardHTML).join("")}</div>`);
 }
-function textSheet(f){const L="════════════════════════════════════",t=(f.techs||[]).map(t=>`${t.nombre}\n${t.desc}\nAlcance: ${t.alcance}\nUso: ${t.uso}\nDuración: ${t.duracion}\nEnfriamiento: ${t.enfr}`).join("\n\n");
+function textSheet(f){const L="════════════════════════════════════",t=(f.techs||[]).map((t,i)=>`${techHead(t,i)} · ${t.nombre}\n${t.desc}\n${techFields(t).map(x=>x.join(": ")).join("\n")}`).join("\n\n");
  return`╔════════════════════════════════════╗
           𝓟𝓔𝓡𝓕𝓘𝓛 𝓓𝓔𝓛 𝓟𝓔𝓡𝓢𝓞𝓝𝓐𝓙𝓔
 ╚════════════════════════════════════╝
@@ -328,7 +363,7 @@ async function form(id){
  <fieldset><legend>Formación y trayectoria</legend><div class="g">${sel("etapa","Etapa académica",ETAPAS)}<div id="w-anio">${sel("anio","Año de estudio",ANIOS)}</div>${inp("ingreso","Año de ingreso","type=number min=1950 max=2100")}<div id="w-egreso">${inp("egreso","Año de egreso","type=number min=1950 max=2100")}</div>${sel("situacion","Situación profesional",SIT)}${inp("experiencia","Años de experiencia","type=number min=0")}${inp("titulo","Título o grado obtenido")}${inp("institucion","Institución")}</div><label>Estudios adicionales (cursos, certificaciones, posgrados)</label><textarea data-k="adicionales">${esc(D.adicionales)}</textarea></fieldset>
  <fieldset><legend>Descripción de combate</legend><div class="g">${inp("habilidad","Nombre de la habilidad")}</div>
  ${TXT.slice(0,2).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}">${esc(D[x[0]])}</textarea>`).join("")}
- <label style="color:var(--ink);font-weight:700">Técnicas</label><div id="techs"></div><button type="button" class="sec" id="addT">+ Añadir técnica</button>
+ <label style="color:var(--ink);font-weight:700">Técnicas</label><div id="techs"></div><button type="button" class="sec" id="addT">+ Añadir técnica</button> <button type="button" class="sec" id="sortT">Ordenar por categoría</button>
  <label>${TXT[2][1]}</label><textarea data-k="limites">${esc(D.limites)}</textarea></fieldset>
  <fieldset><legend>Stats</legend><div class="two"><div>${STATS.map((n,i)=>`<div class="stat"><span>${n}</span><input type="range" min="1" max="10" value="${D.stats[i]}" data-s="${i}"><b>${D.stats[i]}</b></div>`).join("")}<div class="lvbox" id="lvb"></div><p id="lvn" style="margin:8px 0 0;color:var(--mut);font-size:.85rem"></p></div><div id="rd"></div></div></fieldset>
  <fieldset><legend>Posición social, trasfondo y personalidad</legend>${TXT.slice(3).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}" ${x[0]=="historia"?'style="min-height:140px"':""}>${esc(D[x[0]])}</textarea>`).join("")}</fieldset>
@@ -349,10 +384,17 @@ async function form(id){
  ["origen","genero"].forEach(k=>document.querySelector(`[data-k=${k}]`).addEventListener("input",()=>natRefresh(k)));
  document.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{D.stats[r.dataset.s]=+r.value;r.nextElementSibling.textContent=r.value;rd();lvu()});
  $("#img").onchange=async e=>{if(e.target.files[0]){D.img=await compress(e.target.files[0]);$("#pv").src=D.img;$("#pv").style.display="block";draft()}};
- const tb=()=>{$("#techs").innerHTML=D.techs.map((t,i)=>`<div class="tech"><button type="button" class="red x" data-d="${i}">✕</button>${[["nombre","Nombre"],["desc","Descripción"],["alcance","Alcance"],["uso","Uso"],["duracion","Duración"],["enfr","Enfriamiento"]].map(([k,l])=>`<label>${l}</label>${k=="desc"?`<textarea data-t="${i}" data-f="${k}">${esc(t[k])}</textarea>`:`<input data-t="${i}" data-f="${k}" value="${esc(t[k])}">`}`).join("")}</div>`).join("");
+ const tb=()=>{
+  $("#techs").innerHTML=D.techs.map((t,i)=>{const bs=t.cat=="Base",df=t.cat=="Definitiva",fl=(k,l)=>`<label>${l}</label><input data-t="${i}" data-f="${k}" value="${esc(t[k])}">`;
+   return`<div class="tech"><div class="th2"><b>N.º ${i+1}</b><select data-c="${i}"><option value="">— Categoría —</option>${CATS.map(c=>`<option value="${c[0]}" ${t.cat==c[0]?"selected":""}>${c[1]} ${c[0]}</option>`).join("")}</select><button type="button" class="sec" data-up="${i}" ${i?"":"disabled"}>↑</button><button type="button" class="sec" data-dn="${i}" ${i<D.techs.length-1?"":"disabled"}>↓</button><button type="button" class="red x" data-d="${i}">✕</button></div>${fl("nombre","Nombre")}<label>Descripción</label><textarea data-t="${i}" data-f="desc">${esc(t.desc)}</textarea>${fl("alcance","Alcance")}${fl("uso",df?"Carga / preparación":"Uso o preparación")}${bs?"":fl("duracion","Duración")+fl("enfr","Enfriamiento")}${df?`<label>Cualidad que excede</label><select data-t="${i}" data-f="cualidad"><option value="">— Elige —</option>${QUAL.map(q=>`<option ${t.cualidad==q?"selected":""}>${q}</option>`).join("")}</select>${fl("limNormal","Límite normal")}${fl("limDef","Límite en la definitiva")}${fl("secuela","Secuela al terminar")}`:""}</div>`}).join("");
   document.querySelectorAll("[data-t]").forEach(e=>e.oninput=()=>D.techs[e.dataset.t][e.dataset.f]=e.value);
+  document.querySelectorAll("[data-c]").forEach(e=>e.onchange=()=>{const i=+e.dataset.c;if(e.value=="Definitiva"&&D.techs.some((t,j)=>j!=i&&t.cat=="Definitiva")){alert("Solo puede haber una técnica definitiva por personaje.");tb();return}D.techs[i].cat=e.value;if(e.value=="Base"){D.techs[i].duracion="";D.techs[i].enfr=""}tb();draft()});
+  const mv=(i,k)=>{[D.techs[i],D.techs[k]]=[D.techs[k],D.techs[i]];tb();draft()};
+  document.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>mv(+b.dataset.up,+b.dataset.up-1));
+  document.querySelectorAll("[data-dn]").forEach(b=>b.onclick=()=>mv(+b.dataset.dn,+b.dataset.dn+1));
   document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{D.techs.splice(b.dataset.d,1);tb();draft()})};tb();
- $("#addT").onclick=()=>{D.techs.push({nombre:"",desc:"",alcance:"",uso:"",duracion:"",enfr:""});tb();draft()};
+ $("#sortT").onclick=()=>{const o=CATS.map(c=>c[0]);D.techs=D.techs.map((t,i)=>[t,i]).sort((a,b)=>{const x=o.indexOf(a[0].cat),y=o.indexOf(b[0].cat);return(x<0?9:x)-(y<0?9:y)||a[1]-b[1]}).map(x=>x[0]);tb();draft()};
+ $("#addT").onclick=()=>{D.techs.push({cat:"Ataque",nombre:"",desc:"",alcance:"",uso:"",duracion:"",enfr:""});tb();draft()};
  $("#sv").onclick=async()=>{
   if(!D.nombre){alert("Escribe al menos los nombres del personaje.");return}
   if(!id)D.createdAt=Date.now();D.uid=ME.id;D.autor=ME.username;
@@ -453,7 +495,18 @@ gN("<b>Criterio de aplicación:</b> los rangos indican el alcance máximo de ref
 "<h3>Stats</h3>"+gU(["Poder · Velocidad · Truco · Recuperación · Defensa","Nivel 6.4 · Rango Dios"])+"<p><i>Se otorga un total de 32 puntos al iniciar, que pueden distribuirse como se desee; el límite de cada stat es 10. El nivel con esos puntos siempre será 6.4, con rango dios. Si se quiere comenzar con un nivel menor no hay problema, pero los puntos sobrantes no podrán ser usados de nuevo.</i></p>"+
 "<h3>Posición social</h3>"+gU(["<b>Empleo</b> — <i>Sirve para justificar de dónde saca dinero el personaje, para que no aparezca de la nada con un equipamiento o arma rara.</i>","<b>Afiliación</b> — <i>Solo si pertenece a un grupo en especial (tipo mafia, o su familia tiene relación con alguna empresa importante) que le dé cierto beneficio para tener o saber cosas a las que otros no tendrían acceso tan fácil.</i>","Aspiraciones"])+
 "<h3>Trasfondo y personalidad</h3>"+gU(["Personalidad","<b>Historia</b> — <i>Si se quiere poner énfasis en cuándo el personaje descubrió sus poderes, debería mencionarse que fue entre los 8 y los 10 años. Solo existe un personaje que despertó sus poderes a los 12 años y se quiere mantener así. Mientras más tarde despierte un personaje, es para que su cuerpo tolere su propia habilidad: estos personajes no empiezan desde abajo (nivel 1.2) sino que dan un salto de poder bruto, llegando a un nivel 3.5 como máximo, y de ahí su crecimiento es lento.</i>","<b>Datos extra</b> — <i>Curiosidades, medidas y pesos del personaje. No olvidar colocar la imagen del personaje.</i>"])+
-"<p><a class=\"btn\" href=\"#crear\">Crear mi ficha →</a></p>"]
+"<p><a class=\"btn\" href=\"#crear\">Crear mi ficha →</a></p>"],
+
+["g10","X · Técnicas y Técnica Definitiva","<h3>Categorías</h3>"+gT(["Categoría","Cómo funciona"],[
+["<span class='bdg b1'>🟣 BASE</span>","Sin duración ni enfriamiento. Indefinida mientras el aura siga activa."],
+["<span class='bdg b2'>🔴 ATAQUE</span> <span class='bdg b3'>🔵 DEFENSA</span> <span class='bdg b4'>🟢 MOVILIDAD</span>","Llevan preparación (si hace falta), duración y enfriamiento, en turnos. Solo una activa por categoría a la vez."],
+["<span class='bdg b5'>🟡 DEFINITIVA</span>","Una sola por personaje. Último recurso: gasta casi toda el aura."]])+
+"<p>En la ficha, cada técnica lleva su número (N.º 1, 2, 3…) y su categoría. Se pueden reordenar con las flechas o con el botón «Ordenar por categoría».</p>"+
+"<h3>👑 Técnica Definitiva</h3>"+gN("<b>Más de lo mismo, nunca más fuerte.</b>")+gU(["Ningún stat sube: cada golpe, objeto o efecto sigue siendo igual de potente.","Cambia cuánto, hasta dónde o por cuánto tiempo lo usa.","Ocupa los tres espacios de técnica mientras dura.","Se indica la cualidad que excede y el límite normal → límite definitivo."])+
+"<h4>✨ Elige UNA cualidad a exceder</h4>"+gT(["Cualidad","Qué hace","Tope"],[["🔢 <b>Cantidad</b>","Más objetos, proyectiles o copias.","Hasta ×2.5 de su máximo habitual"],["📏 <b>Alcance o área</b>","Llega al extremo superior del siguiente escalón de la tabla de progresión.","—"],["⏳ <b>Duración</b>","Sostiene algo más allá de su máximo de turnos.","+2 turnos"],["🎯 <b>Objetivos</b>","Afecta a más seres a la vez.","Hasta 3 veces lo normal"]])+
+"<h4>⚖️ Costo</h4>"+gU(["Carga: 1 turno · Efecto: 1 turno (máx. 2).","Enfriamiento mínimo: 5 turnos.","Secuela: aura debilitada, o lesión en poderes físicos."])+
+"<h4>🚫 No puede</h4>"+gU(["Exceder la intangibilidad.","Ignorar los Límites y debilidades.","Funcionar contra un rival cuyo stat relevante supere el nivel máximo del usuario."])+
+"<h4>🌟 Ejemplos por tipo de poder</h4>"+gT(["Tipo de poder","Cualidad","Ejemplo"],[["✨ Creación o proyectiles","Cantidad","Yamileth pasa de 20 hilos a 50 relámpagos, cada uno con Poder 8."],["🔥 Elemental","Alcance","Una llamarada pasa de 20 m a 40 m de radio, con la misma temperatura."],["🌐 De campo","Alcance","Un campo de 70 a 85 m (3.er año) llega a 105–130 m durante 1 turno."],["🧠 Mental","Objetivos","Afecta a todas las mentes del radio a la vez, en vez de una por una."],["💚 Curación","Objetivos","Trata a varios pacientes a la vez, con los mismos límites de la Tabla A."],["💥 Poder físico","Área","Un golpe con la fuerza de siempre, pero cuya onda de choque alcanza 30 m de radio. Nadie recibe más toneladas, solo llega a más gente."]])]
 ];
 function guia(){
  $("#app").innerHTML=`<section class="hero" style="padding:30px 16px"><h1>📖 Guía del Rol</h1><p style="margin:0">Reglamento y Lore General · Universidad Aether · Artium, año 2047 · Versión 5</p></section><div class="chips">${gS.map(s=>`<button class="chip" data-g="${s[0]}">${s[1]}</button>`).join("")}</div><div class="gd">${gS.map(s=>`<h2 id="${s[0]}" class="gt">${s[1]}</h2>${s[2]}`).join("")}</div><p style="text-align:center"><button class="sec" id="gtop">↑ Volver arriba</button></p>`;
