@@ -190,7 +190,7 @@ async function pngFicha(f){
  const cs=getComputedStyle($(".sheet")),v=n=>cs.getPropertyValue(n).trim(),acc=v("--acc")||"#4cc783",card=v("--card")||"#1c1a26",ink=v("--ink")||"#ece9f5",on=v("--on")||"#0b2417";
  const W=1300,H=504,TW=390,IW=420,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
  x.fillStyle=card;x.fillRect(0,0,W,H);
- const st=f.stats,l=lv(st),rows=[["DATOS BÁSICOS"],["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["HABILIDAD",f.habilidad],["NIVEL",l.n],["RANGO",l.r],["REPARTICIÓN DE PUNTOS"],...STATS.map((n,i)=>[n.toUpperCase(),st[i]]),["TOTAL",st.reduce((a,b)=>a+b,0)]];
+ const st=f.stats,l=lv(st),rows=[["DATOS BÁSICOS"],["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["RAZA",f.raza],["HABILIDAD",f.habilidad],["NIVEL",l.n],["RANGO",l.r],["REPARTICIÓN DE PUNTOS"],...STATS.map((n,i)=>[n.toUpperCase(),st[i]]),["TOTAL",st.reduce((a,b)=>a+b,0)]];
  const rh=H/rows.length;x.textAlign="center";x.textBaseline="middle";
  const fit=(t,w,sz,wt)=>{t=String(t??"")||"—";let s=sz;do{x.font=`${wt} ${s}px system-ui,sans-serif`;s--}while(x.measureText(t).width>w&&s>9);return t};
  rows.forEach((r,i)=>{const y=i*rh;
@@ -252,7 +252,7 @@ async function perfil(uid){const u=USERS[uid];if(!u){$("#app").innerHTML="<p>Usu
  if(mine)$("#pf").onchange=async e=>{if(e.target.files[0]){await db.setUser(ME.id,{avatar:await compress(e.target.files[0],160)});await loadUsers();nav();side();perfil(uid)}}}
 async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p>Ficha no encontrada.</p>";return}
  const own=!!f.uid&&f.uid===ME.id,cu=USERS[f.uid]||{username:f.autor};
- const tot=f.stats.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["HABILIDAD",f.habilidad],["NIVEL",lv(f.stats).n],["RANGO",lv(f.stats).r]];
+ const tot=f.stats.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["RAZA",f.raza],["HABILIDAD",f.habilidad],["NIVEL",lv(f.stats).n],["RANGO",lv(f.stats).r]];
  const sec=(t,v)=>v?`<h3>${t}</h3><p>${esc(v)}</p>`:"";
  const info=FLD.filter(x=>f[x[0]]).map(x=>`<b>${x[1]}:</b> ${esc(f[x[0]])}`).join("<br>");
  const tech=(f.techs||[]).map((t,i)=>`<div class="t"><b>${techHead(t,i)} · ${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${techFields(t).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
