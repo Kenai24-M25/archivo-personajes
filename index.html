@@ -127,8 +127,9 @@ const theme=c=>{if(!c)return"";const n=parseInt(c.slice(1),16),l=.299*(n>>16)+.5
 const sha=async s=>{if(!crypto.subtle)return btoa(unescape(encodeURIComponent(s)));const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")};
 
 /* ---------- Base de datos y cuentas ---------- */
-let db,A,AU,cache=null,USERS={},ME=null,pn="";
+let db,A,AU,cache=null,USERS={},ROLES={},ME=null,pn="";
 const mail=u=>u.toLowerCase()+"@aether-archivo.app";
+const isAdmin=()=>!!ME&&ROLES[ME.id]=="admin",isMod=()=>!!ME&&(ROLES[ME.id]=="admin"||ROLES[ME.id]=="mod");
 const isOn=u=>Date.now()-(u.lastSeen||0)<150000;
 const ago=t=>{if(!t)return"hace tiempo";const m=Math.floor((Date.now()-t)/60000);return m<1?"hace instantes":m<60?`hace ${m} min`:m<1440?`hace ${Math.floor(m/60)} h`:`hace ${Math.floor(m/1440)} d`};
 const av=(u,s)=>`<span class="av" style="width:${s}px;height:${s}px;font-size:${s*.45}px">${u&&u.avatar?`<img src="${u.avatar}" alt="">`:esc(((u&&u.username)||"?")[0].toUpperCase())}</span>`;
@@ -150,18 +151,19 @@ async function initDB(){
   fotos:async fid=>(await F.getDocs(F.query(col("fotos"),F.where("fichaId","==",fid)))).docs.map(mp),
   addFoto:o=>F.addDoc(col("fotos"),o),setFoto:(id,d)=>F.updateDoc(dc("fotos",id),d),delFoto:id=>F.deleteDoc(dc("fotos",id)),
   coms:async fid=>(await F.getDocs(F.query(col("comentarios"),F.where("fichaId","==",fid)))).docs.map(mp),
-  addCom:o=>F.addDoc(col("comentarios"),o),delCom:id=>F.deleteDoc(dc("comentarios",id))};
+  addCom:o=>F.addDoc(col("comentarios"),o),delCom:id=>F.deleteDoc(dc("comentarios",id)),
+  roles:async()=>(await F.getDocs(col("roles"))).docs.map(mp),setRole:(uid,d)=>F.setDoc(dc("roles",uid),d),delRole:uid=>F.deleteDoc(dc("roles",uid)),setRaza:(id,raza)=>F.updateDoc(dc("fichas",id),{raza})};
 }
 const all=async(force)=>cache&&!force?cache:(cache=await db.list());
-async function loadUsers(){const u={};(await db.users()).forEach(x=>u[x.id]=x);USERS=u;if(ME)ME=USERS[ME.id]||ME}
+async function loadUsers(){try{ROLES=Object.fromEntries((await db.roles()).map(r=>[r.id,r.rol]))}catch(e){}const u={};(await db.users()).forEach(x=>u[x.id]=x);USERS=u;if(ME)ME=USERS[ME.id]||ME}
 const beat=()=>{if(ME&&!document.hidden){if(USERS[ME.id])USERS[ME.id].lastSeen=Date.now();db.setUser(ME.id,{lastSeen:Date.now()}).catch(()=>{})}};
 const authErr=e=>({"auth/email-already-in-use":"Ese usuario ya existe. Elige otro.","auth/weak-password":"La contraseña debe tener mínimo 6 caracteres.","auth/invalid-credential":"Usuario o contraseña incorrectos.","auth/wrong-password":"Usuario o contraseña incorrectos.","auth/user-not-found":"Usuario o contraseña incorrectos.","auth/operation-not-allowed":"Falta activar Correo/contraseña en Firebase Authentication.","auth/too-many-requests":"Demasiados intentos. Espera un momento."}[e.code]||e.message);
 
-function nav(){$("#nav").innerHTML=`<b>✦ ${TITULO}</b>`+(ME?`<a href="#inicio" data-n="inicio">Inicio</a><a href="#galeria" data-n="galeria">Galería</a><a href="#guia" data-n="guia">📖 Guía</a><a href="#crear" data-n="crear">Crear ficha</a><button class="sec" id="tg" style="padding:5px 12px">👥 Comunidad</button><a href="#perfil/${ME.id}" data-n="perfil" style="display:flex;align-items:center;gap:6px">${av(ME,26)}${esc(ME.username)}</a><button class="sec" id="out" style="padding:5px 12px">Salir</button>`:"");
+function nav(){$("#nav").innerHTML=`<b>✦ ${TITULO}</b>`+(ME?`<a href="#inicio" data-n="inicio">Inicio</a><a href="#galeria" data-n="galeria">Galería</a><a href="#guia" data-n="guia">📖 Guía</a><a href="#crear" data-n="crear">Crear ficha</a>${isAdmin()?`<a href="#admin" data-n="admin">🛡 Admin</a>`:""}<button class="sec" id="tg" style="padding:5px 12px">👥 Comunidad</button><a href="#perfil/${ME.id}" data-n="perfil" style="display:flex;align-items:center;gap:6px">${av(ME,26)}${esc(ME.username)}</a><button class="sec" id="out" style="padding:5px 12px">Salir</button>`:"");
  if(ME){$("#tg").onclick=togSide;$("#out").onclick=()=>AU.signOut(A)}}
 function side(){if(!ME){$("#side").innerHTML="";return}
  const us=Object.values(USERS).sort((a,b)=>(isOn(b)-isOn(a))||((b.lastSeen||0)-(a.lastSeen||0))),on=us.filter(isOn).length;
- $("#side").innerHTML=`<h3 style="margin:0 0 2px">👥 Comunidad</h3><small style="color:var(--mut)">${on} activos · ${us.length-on} inactivos</small><div style="margin-top:8px">${us.map(u=>`<a class="us" href="#perfil/${u.id}">${av(u,34)}<span><b>${esc(u.username)}</b><small>${isOn(u)?"Activo ahora":"Visto "+ago(u.lastSeen)}</small></span><i class="dot ${isOn(u)?"on":""}"></i></a>`).join("")}</div>`}
+ $("#side").innerHTML=`<h3 style="margin:0 0 2px">👥 Comunidad</h3><small style="color:var(--mut)">${on} activos · ${us.length-on} inactivos</small><div style="margin-top:8px">${us.map(u=>`<a class="us" href="#perfil/${u.id}">${av(u,34)}<span><b>${esc(u.username)}</b>${ROLES[u.id]?`<em class="tag" style="font-style:normal;margin:0 0 0 4px">${ROLES[u.id]=="admin"?"Admin":"Mod"}</em>`:""}<small>${isOn(u)?"Activo ahora":"Visto "+ago(u.lastSeen)}</small></span><i class="dot ${isOn(u)?"on":""}"></i></a>`).join("")}</div>`}
 async function start(u){
  if(!u){ME=null;nav();side();gate();return}
  await loadUsers();
@@ -251,26 +253,27 @@ async function perfil(uid){const u=USERS[uid];if(!u){$("#app").innerHTML="<p>Usu
  if(a.length)bindV(()=>perfil(uid));
  if(mine)$("#pf").onchange=async e=>{if(e.target.files[0]){await db.setUser(ME.id,{avatar:await compress(e.target.files[0],160)});await loadUsers();nav();side();perfil(uid)}}}
 async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p>Ficha no encontrada.</p>";return}
- const own=!!f.uid&&f.uid===ME.id,cu=USERS[f.uid]||{username:f.autor};
+ const own=!!f.uid&&f.uid===ME.id,adm=isAdmin(),mod=isMod(),cu=USERS[f.uid]||{username:f.autor};
  const tot=f.stats.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["RAZA",f.raza],["HABILIDAD",f.habilidad],["NIVEL",lv(f.stats).n],["RANGO",lv(f.stats).r]];
  const sec=(t,v)=>v?`<h3>${t}</h3><p>${esc(v)}</p>`:"";
  const info=FLD.filter(x=>f[x[0]]).map(x=>`<b>${x[1]}:</b> ${esc(f[x[0]])}`).join("<br>");
  const tech=(f.techs||[]).map((t,i)=>`<div class="t"><b>${techHead(t,i)} · ${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${techFields(t).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
- $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a>${own?`<button class="sec" id="cp">Copiar en texto</button>`:""}${own?`<button class="sec" id="ed">Editar</button><button class="red" id="dl">Eliminar</button>`:""}</div><a href="${f.uid?"#perfil/"+f.uid:"#galeria"}" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:12px">${av(cu,36)}<span>Creada por <b>${esc(cu.username||"Anónimo")}</b></span></a>
+ $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a>${own?`<button class="sec" id="cp">Copiar en texto</button>`:""}${own?`<button class="sec" id="ed">Editar</button>`:""}${own||mod?`<button class="red" id="dl">Eliminar${own?"":" (moderación)"}</button>`:""}</div><a href="${f.uid?"#perfil/"+f.uid:"#galeria"}" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:12px">${av(cu,36)}<span>Creada por <b>${esc(cu.username||"Anónimo")}</b></span></a>${adm?`<div class="note" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>🛡 Admin · Raza:</b><select id="ar" style="width:auto"><option value="">— Sin raza —</option>${[...RAZAS,...RAZAS_ADMIN].map(x=>`<option ${f.raza==x?"selected":""}>${x}</option>`).join("")}</select><button id="arb" class="sec" style="padding:4px 12px">Asignar raza</button></div>`:""}
  <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl"><div class="h">DATOS BÁSICOS</div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h">REPARTICIÓN DE PUNTOS</div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
  <div class="pic">${f.img?`<img src="${f.img}" alt="">`:""}</div><div style="padding:6px;display:flex;align-items:center">${radar(f.stats)}</div></div>
  ${own?`<div class="dlb"><button id="dp">⬇ Descargar ficha gráfica (PNG)</button> <button id="dt">⬇ Descargar ficha escrita (TXT)</button></div>`:""}<div class="txt"><p>${info}</p>${fmList(f).length?`<h3>Formación y trayectoria</h3><p>${fmList(f).map(x=>`<b>${x[0]}:</b> ${esc(x[1])}`).join("<br>")}</p>`:""}${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
  if(own)$("#cp").onclick=async()=>{await navigator.clipboard.writeText(textSheet(f));$("#cp").textContent="¡Copiado!"};
  if(own)$("#dp").onclick=()=>pngFicha(f);
  if(own)$("#dt").onclick=()=>{const b=new Blob(["\ufeff"+textSheet(f)],{type:"text/plain;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(`${f.nombre||"ficha"}-${f.apellido||""}`).replace(/\s+/g,"_")+".txt";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
- if(own){$("#ed").onclick=()=>location.hash="#editar/"+id;$("#dl").onclick=async()=>{if(confirm("¿Eliminar para siempre?")){try{for(const c of await db.coms(id))await db.delCom(c.id)}catch(e){}for(const q of await db.fotos(id))await db.delFoto(q.id);await db.del(id);cache=null;location.hash="#perfil/"+ME.id}}}
+ if(own)$("#ed").onclick=()=>location.hash="#editar/"+id;if(own||mod){$("#dl").onclick=async()=>{if(confirm("¿Eliminar para siempre?")){try{for(const c of await db.coms(id))await db.delCom(c.id)}catch(e){}for(const q of await db.fotos(id))await db.delFoto(q.id);await db.del(id);cache=null;location.hash=own?"#perfil/"+ME.id:"#galeria"}}}
+ if(adm)$("#arb").onclick=async()=>{try{await db.setRaza(id,$("#ar").value);cache=null;ficha(id)}catch(e){alert("No se pudo asignar la raza: "+e.message)}};
  $("#app").insertAdjacentHTML("beforeend",`<section id="gal" style="${theme(f.color)}"></section>`);
  const FM=12,lb=q=>{const d=document.createElement("div");d.className="lb";d.innerHTML=`<img src="${q.img}" alt=""><p>${esc(q.caption)}</p>`;d.onclick=()=>d.remove();document.body.appendChild(d)};
  const gal=async()=>{let fs=[];try{fs=(await db.fotos(id)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))}catch(e){$("#gal").innerHTML="";return}
   let cs=[];try{cs=await db.coms(id)}catch(e){}
   $("#gal").innerHTML=(fs.length||own?`<h2>📸 Galería del personaje <small style="color:var(--mut);font-weight:400">(${fs.length})</small></h2>`:"")
   +(own?(fs.length<FM?`<details class="fadd"><summary class="btn sec" style="display:inline-block">+ Agregar foto</summary><div class="fbox"><label>Foto</label><input type="file" id="fi" accept="image/*"><label>¿Qué está haciendo el personaje en esta foto? (opcional)</label><textarea id="fc" maxlength="400" placeholder="Ej.: practicando con su técnica en la azotea de la universidad…"></textarea><div style="margin-top:10px"><button id="fu">Subir foto</button> <small id="fm" style="color:var(--mut)"></small></div></div></details>`:`<p style="color:var(--mut)">Llegaste al máximo de ${FM} fotos.</p>`):"")
-  +(fs.length?`<div class="fg" style="margin-top:12px">${fs.map(q=>`<figure class="fo"><img src="${q.img}" data-z="${q.id}" alt=""><figcaption>${esc(q.caption)||"<i style='color:var(--mut)'>Sin descripción</i>"}${own?`<div style="margin-top:6px"><button class="sec" data-e="${q.id}" style="padding:2px 10px;font-size:.78rem">Editar texto</button> <button class="red" data-x="${q.id}" style="padding:2px 10px;font-size:.78rem">Eliminar</button></div>`:""}</figcaption><div class="cms"><div class="cl">${cs.filter(c=>c.fotoId==q.id).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)).map(c=>`<div class="cm"><span><a href="#perfil/${c.uid}"><b>${esc(c.autor)}</b></a> ${esc(c.texto)}</span>${c.uid===ME.id||own?`<button class="red" data-dc="${c.id}" title="Borrar comentario">✕</button>`:""}</div>`).join("")||"<small style='color:var(--mut)'>Sé la primera persona en comentar.</small>"}</div><div class="cf"><input data-ci="${q.id}" maxlength="300" placeholder="Comenta esta foto…"><button data-cs="${q.id}">Enviar</button></div></div></figure>`).join("")}</div>`:"");
+  +(fs.length?`<div class="fg" style="margin-top:12px">${fs.map(q=>`<figure class="fo"><img src="${q.img}" data-z="${q.id}" alt=""><figcaption>${esc(q.caption)||"<i style='color:var(--mut)'>Sin descripción</i>"}${own||mod?`<div style="margin-top:6px">${own?`<button class="sec" data-e="${q.id}" style="padding:2px 10px;font-size:.78rem">Editar texto</button> `:""}<button class="red" data-x="${q.id}" style="padding:2px 10px;font-size:.78rem">Eliminar</button></div>`:""}</figcaption><div class="cms"><div class="cl">${cs.filter(c=>c.fotoId==q.id).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)).map(c=>`<div class="cm"><span><a href="#perfil/${c.uid}"><b>${esc(c.autor)}</b></a> ${esc(c.texto)}</span>${c.uid===ME.id||own||mod?`<button class="red" data-dc="${c.id}" title="Borrar comentario">✕</button>`:""}</div>`).join("")||"<small style='color:var(--mut)'>Sé la primera persona en comentar.</small>"}</div><div class="cf"><input data-ci="${q.id}" maxlength="300" placeholder="Comenta esta foto…"><button data-cs="${q.id}">Enviar</button></div></div></figure>`).join("")}</div>`:"");
   const by=i=>fs.find(q=>q.id==i);
   document.querySelectorAll("[data-z]").forEach(i=>i.onclick=()=>lb(by(i.dataset.z)));
   document.querySelectorAll("[data-e]").forEach(b=>b.onclick=async()=>{const q=by(b.dataset.e),t=prompt("Describe qué está haciendo el personaje:",q.caption||"");if(t!==null){await db.setFoto(q.id,{caption:t.trim().slice(0,400)});gal()}});
@@ -358,7 +361,7 @@ async function form(id){
  try{const b=JSON.parse(localStorage.getItem(KEY)||"null");if(b&&b.d){D=b.d;D.color=D.color||PAL[0];rec=true}}catch(e){}
  const sel=(k,l,o)=>`<div><label>${l}</label><select data-k="${k}"><option value="">— Elige —</option>${(D[k]&&!o.includes(D[k])?[...o,D[k]]:o).map(x=>`<option ${D[k]==x?"selected":""}>${x}</option>`).join("")}</select></div>`;
  const natOptions=()=>{const l=PAISES.map(p=>nat(p,D.genero)).sort((a,b)=>a.localeCompare(b,"es")),c=D.nacionalidad;return`<option value="">— Elige —</option>`+(c&&!l.includes(c)?[...l,c]:l).map(x=>`<option ${c==x?"selected":""}>${x}</option>`).join("")};
- const razaSel=l=>`<div><label>${l}</label><select data-k="raza"><option value="">— Elige —</option>${RAZAS.map(x=>`<option ${D.raza==x?"selected":""}>${x}</option>`).join("")}${RAZAS_ADMIN.map(x=>`<option value="${x}" ${D.raza==x?"selected":""} disabled>${x} (solo administrador)</option>`).join("")}</select></div>`;
+ const razaSel=l=>`<div><label>${l}</label><select data-k="raza"><option value="">— Elige —</option>${RAZAS.map(x=>`<option ${D.raza==x?"selected":""}>${x}</option>`).join("")}${RAZAS_ADMIN.map(x=>`<option value="${x}" ${D.raza==x?"selected":""} ${isAdmin()?"":"disabled"}>${x}${isAdmin()?"":" (solo administrador)"}</option>`).join("")}</select></div>`;
  const inp=(k,l,t="")=>`<div><label>${l}</label><input data-k="${k}" ${t} value="${esc(D[k])}"></div>`;
  $("#app").innerHTML=banner()+`<h2>${id?"Editar ficha":"Crear ficha"}</h2>${rec?`<div class="banner">✔ Recuperamos tu borrador. Puedes seguir donde lo dejaste (por seguridad, el PIN hay que escribirlo otra vez). <button type="button" class="sec" id="nd" style="padding:3px 10px;margin-left:6px">Empezar de cero</button></div>`:""}<p style="margin:-6px 0 12px"><small id="as" style="color:var(--mut)">Tu progreso se guarda solo mientras escribes.</small></p><form onsubmit="return false">
  <fieldset><legend>Perfil</legend><label>Color de la ficha</label><div class="sw">${PAL.map(c=>`<button type="button" class="swb" data-c="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="col" value="${D.color}"></div><label>Imagen del personaje</label><input type="file" id="img" accept="image/*"><img id="pv" src="${D.img}" style="max-height:160px;margin-top:8px;border-radius:8px;${D.img?"":"display:none"}">
@@ -517,9 +520,19 @@ function guia(){
  $("#gtop").onclick=()=>scrollTo({top:0,behavior:"smooth"})}
 
 /* ---------- Router ---------- */
+async function adminPanel(){
+ if(!isAdmin()){$("#app").innerHTML="<h2>Sin acceso</h2><p>Esta sección es solo para administradores.</p>";return}
+ await loadUsers();const fs=await all(true),cnt={};fs.forEach(f=>{if(f.uid)cnt[f.uid]=(cnt[f.uid]||0)+1});
+ const us=Object.values(USERS).sort((a,b)=>(a.username||"").localeCompare(b.username||"","es")),RN={"":"Usuario",mod:"Moderador",admin:"Administrador"};
+ $("#app").innerHTML=`<h2>🛡 Panel de administración</h2><div class="note"><b>Administrador:</b> todo lo de un moderador, más designar roles, asignar las razas restringidas (desde la ficha de cada personaje) y elegirlas en su propio editor.<br><b>Moderador:</b> borrar fichas, fotos y comentarios de cualquier usuario.<br><b>Usuario:</b> permisos normales, solo sobre lo suyo.</div><h3 class="sh">Roles de la comunidad <small style="color:var(--mut);font-weight:400">(${us.length} usuarios)</small></h3><div class="lst">${us.map(u=>`<div class="r2"><a href="#perfil/${u.id}">${av(u,40)}</a><div class="rb"><a class="rt" href="#perfil/${u.id}">${esc(u.username)}</a><small style="color:var(--mut)">${cnt[u.id]||0} fichas${u.id==ME.id?" · tú (tu rol no se puede cambiar aquí)":""}</small></div><select data-r="${u.id}" style="width:auto" ${u.id==ME.id?"disabled":""}>${Object.keys(RN).map(k=>`<option value="${k}" ${(ROLES[u.id]||"")==k?"selected":""}>${RN[k]}</option>`).join("")}</select></div>`).join("")}</div><p id="am" style="color:var(--mut);min-height:1.4em"></p>`;
+ document.querySelectorAll("[data-r]").forEach(sl=>sl.onchange=async()=>{const uid=sl.dataset.r,v=sl.value;sl.disabled=true;
+  try{if(v)await db.setRole(uid,{rol:v,asignadoPor:ME.id,createdAt:Date.now()});else await db.delRole(uid);
+   if(v)ROLES[uid]=v;else delete ROLES[uid];side();$("#am").textContent="✔ Rol de "+(USERS[uid]?USERS[uid].username:"usuario")+" actualizado a "+RN[v]+"."}
+  catch(e){alert("No se pudo cambiar el rol: "+e.message);adminPanel();return}
+  sl.disabled=false})}
 async function route(){if(!ME){gate();return}const [p,id]=(location.hash.slice(1)||"inicio").split("/");
  document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.n==p));scrollTo(0,0);
- try{await ({inicio,galeria,crear:()=>form(),ficha:()=>ficha(id),editar:()=>form(id),perfil:()=>perfil(id),guia:()=>guia()}[p]||inicio)()}catch(e){$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}}
+ try{await ({inicio,galeria,crear:()=>form(),ficha:()=>ficha(id),editar:()=>form(id),perfil:()=>perfil(id),guia:()=>guia(),admin:()=>adminPanel()}[p]||inicio)()}catch(e){$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}}
 try{await initDB();addEventListener("hashchange",route);
  AU.onAuthStateChanged(A,u=>start(u).catch(e=>{$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}));
  setInterval(async()=>{if(ME&&!document.hidden){beat();try{await loadUsers();side()}catch(e){}}},60000);
