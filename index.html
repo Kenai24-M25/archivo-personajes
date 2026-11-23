@@ -89,6 +89,13 @@ svg{max-width:100%}
 #bgfx{position:fixed;inset:0;z-index:-2;display:none;background:center/cover no-repeat;filter:url(#gm)}#bgw{position:fixed;inset:0;z-index:-1;display:none;opacity:.28;pointer-events:none}
 nav b.brand{display:flex;align-items:center;gap:10px}
 .orn{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--acc2);margin:0 0 12px}.orn:before,.orn:after{content:"";width:90px;height:2px;background:var(--line)}
+.ftabs,.fleg{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.fchip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font-weight:600;font-size:.82rem}
+.fchip i{width:12px;height:12px;border-radius:50%;flex:none}.fchip.on{border-color:var(--fc,var(--acc));background:color-mix(in srgb,var(--fc,var(--acc)) 22%,transparent)}.fchip.add{border-style:dashed}
+.fmeta{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:4px 12px 12px;margin-bottom:10px}
+.rcol{padding:10px 12px;display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0}
+.fov{font-size:.8rem;color:var(--mut);display:flex;gap:6px;align-items:center;justify-content:center;margin:0}.fov input{width:auto}
+.fds{display:grid;gap:8px;margin-top:4px}.fd{border-left:4px solid var(--fc);padding:2px 10px;opacity:.65}.fd.on{opacity:1}.fd b{color:var(--fc)}.fd p{margin:2px 0 0;font-size:.82rem;color:var(--mut)}
 </style>
 </head>
 <body>
@@ -189,17 +196,25 @@ function gate(){
  $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key=="Enter")go()}}
 
 /* ---------- Utilidades ---------- */
+const FCOL=["#3b82f6","#ef4444","#22c55e","#eab308","#a855f7","#14b8a6","#f97316","#ec4899"];
+const formasDe=f=>f.formas&&f.formas.length>1?f.formas.map((x,i)=>({n:x.n||"Forma "+(i+1),c:x.c||FCOL[i%FCOL.length],d:x.d||"",s:i==0?f.stats:(x.s||f.stats)})):[{n:"Forma única",c:"",d:"",s:f.stats}];
+function radarN(FR,act,ov=true){const cx=200,cy=148,R=100,pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+R*v/10*Math.cos(a),cy+R*v/10*Math.sin(a)]};let s="";
+ for(let k=2;k<=10;k+=2)s+=`<polygon points="${STATS.map((_,i)=>pt(i,k)).join(" ")}" fill="none" stroke="currentColor" stroke-opacity=".3"/>`;
+ STATS.forEach((n,i)=>{const e=pt(i,10);s+=`<line x1="${cx}" y1="${cy}" x2="${e[0]}" y2="${e[1]}" stroke="currentColor" stroke-opacity=".2"/>`});
+ FR.map((_,i)=>i).filter(i=>ov||i==act).sort((p,q)=>(p==act)-(q==act)).forEach(i=>{const on=i==act;s+=`<polygon points="${FR[i].s.map((v,j)=>pt(j,v)).join(" ")}" fill="${FR[i].c}" fill-opacity="${on?.42:.14}" stroke="${FR[i].c}" stroke-width="${on?3:1.6}" stroke-opacity="${on?1:.75}" stroke-linejoin="round"/>`});
+ STATS.forEach((n,i)=>{const p=pt(i,12.7);s+=`<text x="${p[0]}" y="${p[1]+4}" text-anchor="${p[0]<cx-5?"end":p[0]>cx+5?"start":"middle"}" font-size="11" font-weight="700" fill="currentColor">${n.toUpperCase()}</text>`});
+ return`<svg viewBox="0 0 400 296">${s}</svg>`}
 function radar(st){const cx=200,cy=148,R=100,pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+R*v/10*Math.cos(a),cy+R*v/10*Math.sin(a)]};let s="";
  for(let k=2;k<=10;k+=2)s+=`<polygon points="${STATS.map((_,i)=>pt(i,k)).join(" ")}" fill="none" stroke="currentColor" stroke-opacity=".3"/>`;
  STATS.forEach((n,i)=>{const e=pt(i,10);s+=`<line x1="${cx}" y1="${cy}" x2="${e[0]}" y2="${e[1]}" stroke="currentColor" stroke-opacity=".2"/>`});
  s+=`<polygon points="${st.map((v,i)=>pt(i,v)).join(" ")}" fill="var(--fill)" stroke="var(--acc2)" stroke-width="2"/>`;
  STATS.forEach((n,i)=>{const p=pt(i,12.7);s+=`<text x="${p[0]}" y="${p[1]+4}" text-anchor="${p[0]<cx-5?"end":p[0]>cx+5?"start":"middle"}" font-size="11" font-weight="700" fill="currentColor">${n.toUpperCase()}</text>`});
  return`<svg viewBox="0 0 400 296">${s}</svg>`}
-async function pngFicha(f){
+async function pngFicha(f,fa=0,ov=true){
  const cs=getComputedStyle($(".sheet")),v=n=>cs.getPropertyValue(n).trim(),acc=v("--acc")||"#4cc783",card=v("--card")||"#1c1a26",ink=v("--ink")||"#ece9f5",on=v("--on")||"#0b2417";
  const W=1300,H=504,TW=390,IW=420,c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
  x.fillStyle=card;x.fillRect(0,0,W,H);
- const st=f.stats,l=lv(st),rows=[["DATOS BÁSICOS"],["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["RAZA",f.raza],["HABILIDAD",f.habilidad],["NIVEL",l.n],["RANGO",l.r],["REPARTICIÓN DE PUNTOS"],...STATS.map((n,i)=>[n.toUpperCase(),st[i]]),["TOTAL",st.reduce((a,b)=>a+b,0)]];
+ const FR=formasDe(f),mu=FR.length>1,a0=FR[fa]?fa:0,st=FR[a0].s,l=lv(st),rows=[["DATOS BÁSICOS"],["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["RAZA",f.raza],["HABILIDAD",f.habilidad],["NIVEL",l.n],["RANGO",l.r],["REPARTICIÓN DE PUNTOS"+(mu?" · "+FR[a0].n:"")],...STATS.map((n,i)=>[n.toUpperCase(),st[i]]),["TOTAL",st.reduce((a,b)=>a+b,0)]];
  const rh=H/rows.length;x.textAlign="center";x.textBaseline="middle";
  const fit=(t,w,sz,wt)=>{t=String(t??"")||"—";let s=sz;do{x.font=`${wt} ${s}px system-ui,sans-serif`;s--}while(x.measureText(t).width>w&&s>9);return t};
  rows.forEach((r,i)=>{const y=i*rh;
@@ -211,7 +226,10 @@ async function pngFicha(f){
  const cx=1050,cy=H/2+10,R=115,pt=(i,k)=>{const a=-Math.PI/2+i*2*Math.PI/5;return[cx+R*k/10*Math.cos(a),cy+R*k/10*Math.sin(a)]};
  x.lineWidth=1;x.strokeStyle=ink;x.globalAlpha=.35;for(let k=2;k<=10;k+=2){x.beginPath();STATS.forEach((_,i)=>{const p=pt(i,k);i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.stroke()}
  STATS.forEach((_,i)=>{const p=pt(i,10);x.beginPath();x.moveTo(cx,cy);x.lineTo(p[0],p[1]);x.stroke()});x.globalAlpha=1;
- x.beginPath();st.forEach((v,i)=>{const p=pt(i,v);i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.globalAlpha=.5;x.fillStyle=acc;x.fill();x.globalAlpha=1;x.strokeStyle=acc;x.lineWidth=3;x.stroke();
+ if(!mu){x.beginPath();st.forEach((v,i)=>{const p=pt(i,v);i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.globalAlpha=.5;x.fillStyle=acc;x.fill();x.globalAlpha=1;x.strokeStyle=acc;x.lineWidth=3;x.stroke()}
+  else{FR.map((_,i)=>i).filter(i=>ov||i==a0).sort((p,q)=>(p==a0)-(q==a0)).forEach(i=>{x.beginPath();FR[i].s.forEach((v,j)=>{const p=pt(j,v);j?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.globalAlpha=i==a0?.45:.16;x.fillStyle=FR[i].c;x.fill();x.globalAlpha=1;x.strokeStyle=FR[i].c;x.lineWidth=i==a0?3.5:2;x.stroke()});
+   x.font="bold 15px system-ui,sans-serif";x.textAlign="left";const ws=FR.map(r=>x.measureText(r.n).width+34);let sx=cx-ws.reduce((a,b)=>a+b,0)/2;
+   FR.forEach((r,i)=>{x.fillStyle=r.c;x.fillRect(sx,34,14,14);x.fillStyle=ink;x.globalAlpha=i==a0?1:.7;x.fillText(r.n,sx+22,41);x.globalAlpha=1;sx+=ws[i]})}
  x.fillStyle=ink;x.font="bold 15px system-ui,sans-serif";STATS.forEach((n,i)=>{const p=pt(i,12);x.textAlign=p[0]<cx-5?"right":p[0]>cx+5?"left":"center";x.fillText(n.toUpperCase(),p[0],p[1])});
  x.strokeStyle=ink;x.lineWidth=3;x.strokeRect(1.5,1.5,W-3,H-3);x.lineWidth=2;[TW,TW+IW].forEach(k=>{x.beginPath();x.moveTo(k,0);x.lineTo(k,H);x.stroke()});
  const a=document.createElement("a");a.download=(`${f.nombre||"ficha"}-${f.apellido||""}`).replace(/\s+/g,"_")+".png";a.href=c.toDataURL("image/png");a.click()}
@@ -273,11 +291,17 @@ async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p
  const info=FLD.filter(x=>f[x[0]]).map(x=>`<b>${x[1]}:</b> ${esc(f[x[0]])}`).join("<br>");
  const tech=(f.techs||[]).map((t,i)=>`<div class="t"><b>${techHead(t,i)} · ${esc(t.nombre)}</b><p>${esc(t.desc)}</p><small>${techFields(t).map(x=>esc(x.join(": "))).join(" · ")}</small></div>`).join("");
  $("#app").innerHTML=`<div class="row" style="margin-top:0"><a class="btn sec" href="#galeria">← Galería</a>${own?`<button class="sec" id="cp">Copiar en texto</button>`:""}${own?`<button class="sec" id="ed">Editar</button>`:""}${own||mod?`<button class="red" id="dl">Eliminar${own?"":" (moderación)"}</button>`:""}</div><a href="${f.uid?"#perfil/"+f.uid:"#galeria"}" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:12px">${av(cu,36)}<span>Creada por <b>${esc(cu.username||"Anónimo")}</b></span></a>${adm?`<div class="note" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>🛡 Admin · Raza:</b><select id="ar" style="width:auto"><option value="">— Sin raza —</option>${[...RAZAS,...RAZAS_ADMIN].map(x=>`<option ${f.raza==x?"selected":""}>${x}</option>`).join("")}</select><button id="arb" class="sec" style="padding:4px 12px">Asignar raza</button></div>`:""}
- <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl"><div class="h">DATOS BÁSICOS</div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h">REPARTICIÓN DE PUNTOS</div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${f.stats[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div></div>
- <div class="pic">${f.img?`<img src="${f.img}" alt="">`:""}</div><div style="padding:6px;display:flex;align-items:center">${radar(f.stats)}</div></div>
+ <div class="sheet" style="${theme(f.color)}"><div class="top"><div class="tbl" id="tbl"></div>
+ <div class="pic">${f.img?`<img src="${f.img}" alt="">`:""}</div><div class="rcol" id="rcol"></div></div>
  ${own?`<div class="dlb"><button id="dp">⬇ Descargar ficha gráfica (PNG)</button> <button id="dt">⬇ Descargar ficha escrita (TXT)</button></div>`:""}<div class="txt">${info?`<h3>Datos personales</h3><p>${info}</p>`:""}${fmList(f).length?`<h3>Formación y trayectoria</h3><p>${fmList(f).map(x=>`<b>${x[0]}:</b> ${esc(x[1])}`).join("<br>")}</p>`:""}${sec("Habilidad: "+esc(f.habilidad),f.descHab)}${sec("Habilidad pasiva",f.pasiva)}${tech?`<h3>Técnicas</h3>${tech}`:""}${TXT.slice(2).map(x=>sec(x[1],f[x[0]])).join("")}</div></div>`;
- if(own)$("#cp").onclick=async()=>{await navigator.clipboard.writeText(textSheet(f));$("#cp").textContent="¡Copiado!"};
- if(own)$("#dp").onclick=()=>pngFicha(f);
+ const FRM=formasDe(f),mu=FRM.length>1;let fa=0,ov=true;
+  const paint=()=>{const s=FRM[fa].s,l=lv(s),tot=s.reduce((a,b)=>a+b,0),rows=[["NOMBRES",f.nombre],["APELLIDOS",f.apellido],["RAZA",f.raza],["HABILIDAD",f.habilidad],["NIVEL",l.n],["RANGO",l.r]];
+   $("#tbl").innerHTML=`<div class="h">DATOS BÁSICOS</div>${rows.map(r=>`<div><span>${r[0]}</span><span>${esc(r[1])||"—"}</span></div>`).join("")}<div class="h">REPARTICIÓN DE PUNTOS${mu?" · "+esc(FRM[fa].n):""}</div>${STATS.map((n,i)=>`<div><span>${n.toUpperCase()}</span><span>${s[i]}</span></div>`).join("")}<div><span>TOTAL</span><span>${tot}</span></div>`;
+   $("#rcol").innerHTML=mu?`<div class="fleg">${FRM.map((x,i)=>`<button class="fchip${i==fa?" on":""}" data-fi="${i}" style="--fc:${x.c}"><i style="background:${x.c}"></i><span>${esc(x.n)}</span></button>`).join("")}</div>${radarN(FRM,fa,ov)}<label class="fov"><input type="checkbox" id="fov" ${ov?"checked":""}> Ver todas las formas superpuestas</label><div class="fds">${FRM.map((x,i)=>`<div class="fd${i==fa?" on":""}" style="--fc:${x.c}"><b>${esc(x.n)}</b><p>${esc(x.d)||"<i>Sin descripción</i>"}</p></div>`).join("")}</div>`:radar(f.stats);
+   if(mu){document.querySelectorAll(".fleg .fchip").forEach(b=>b.onclick=()=>{fa=+b.dataset.fi;paint()});$("#fov").onchange=e=>{ov=e.target.checked;paint()}}};
+  paint();
+  if(own)$("#cp").onclick=async()=>{await navigator.clipboard.writeText(textSheet(f));$("#cp").textContent="¡Copiado!"};
+ if(own)$("#dp").onclick=()=>pngFicha(f,fa,ov);
  if(own)$("#dt").onclick=()=>{const b=new Blob(["\ufeff"+textSheet(f)],{type:"text/plain;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(`${f.nombre||"ficha"}-${f.apellido||""}`).replace(/\s+/g,"_")+".txt";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
  if(own)$("#ed").onclick=()=>location.hash="#editar/"+id;if(own||mod){$("#dl").onclick=async()=>{if(confirm("¿Eliminar para siempre?")){try{for(const c of await db.coms(id))await db.delCom(c.id)}catch(e){}for(const q of await db.fotos(id))await db.delFoto(q.id);await db.del(id);cache=null;location.hash=own?"#perfil/"+ME.id:"#galeria"}}}
  if(adm)$("#arb").onclick=async()=>{try{await db.setRaza(id,$("#ar").value);cache=null;ficha(id)}catch(e){alert("No se pudo asignar la raza: "+e.message)}};
@@ -303,6 +327,7 @@ async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p
  const more=(await all()).filter(x=>x.uid&&x.uid===f.uid&&x.id!==id);
  if(more.length)$("#app").insertAdjacentHTML("beforeend",`<h2>Más fichas de ${esc(cu.username)}</h2><div class="grid">${more.map(cardHTML).join("")}</div>`);
 }
+const formasTxt=f=>{const FR=formasDe(f);return FR.length<2?"":"\n\n"+bd("Formas de stats")+" (nunca aplicables a la vez)\n"+FR.map((x,i)=>`『 ${i+1} · ${x.n} 』\n${STATS.map((n,j)=>`${n}: ${x.s[j]}`).join(" · ")}${x.d?"\n"+x.d:""}`).join("\n\n")};
 function textSheet(f){const L="════════════════════════════════════",t=(f.techs||[]).map((t,i)=>`${techHead(t,i)} · ${t.nombre}\n${t.desc}\n${techFields(t).map(x=>x.join(": ")).join("\n")}`).join("\n\n");
  return`╔════════════════════════════════════╗
           𝓟𝓔𝓡𝓕𝓘𝓛 𝓓𝓔𝓛 𝓟𝓔𝓡𝓢𝓞𝓝𝓐𝓙𝓔
@@ -345,7 +370,7 @@ ${f.limites}
 ▸ 𝗗𝗲𝗳𝗲𝗻𝘀𝗮: ${f.stats[4]} / 10
 
 ▸ 𝑵𝒊𝒗𝒆𝒍: ${lv(f.stats).n}
-▸ 𝑹𝒂𝒏𝒈𝒐: ${lv(f.stats).r}
+▸ 𝑹𝒂𝒏𝒈𝒐: ${lv(f.stats).r}${formasTxt(f)}
 
 ${L}
 
@@ -385,24 +410,40 @@ async function form(id){
  ${TXT.slice(0,2).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}">${esc(D[x[0]])}</textarea>`).join("")}
  <label style="color:var(--ink);font-weight:700">Técnicas</label><div id="techs"></div><button type="button" class="sec" id="addT">+ Añadir técnica</button> <button type="button" class="sec" id="sortT">Ordenar por categoría</button>
  <label>${TXT[2][1]}</label><textarea data-k="limites">${esc(D.limites)}</textarea></fieldset>
- <fieldset><legend>Stats</legend><div class="two"><div>${STATS.map((n,i)=>`<div class="stat"><span>${n}</span><input type="range" min="1" max="10" value="${D.stats[i]}" data-s="${i}"><b>${D.stats[i]}</b></div>`).join("")}<div class="lvbox" id="lvb"></div><p id="lvn" style="margin:8px 0 0;color:var(--mut);font-size:.85rem"></p></div><div id="rd"></div></div></fieldset>
+ <fieldset><legend>Stats</legend><div class="two"><div><div id="ftw"></div><div id="sl"></div><div class="lvbox" id="lvb"></div><p id="lvn" style="margin:8px 0 0;color:var(--mut);font-size:.85rem"></p><div id="fmw" style="margin-top:10px"></div></div><div id="rd"></div></div></fieldset>
  <fieldset><legend>Posición social, trasfondo y personalidad</legend>${TXT.slice(3).map(x=>`<label>${x[1]}</label><textarea data-k="${x[0]}" ${x[0]=="historia"?'style="min-height:140px"':""}>${esc(D[x[0]])}</textarea>`).join("")}</fieldset>
  <button id="sv">${id?"Guardar cambios":"Publicar ficha"}</button></form>`;
- const rd=()=>$("#rd").innerHTML=radar(D.stats);rd();
- const lvu=()=>{D.stats=D.stats.map(v=>Math.max(1,v));const t=D.stats.reduce((a,b)=>a+b,0),l=lv(D.stats);D.nivel=l.n;D.rango=l.r;
-  $("#lvb").innerHTML=`Nivel <b>${l.n}</b> · Rango <b>${l.r}</b>`;
-  $("#lvn").textContent=`${t} puntos usados`+(t==32?" — justo los 32 iniciales.":t<32?` — te sobran ${32-t}, y los puntos sobrantes no se pueden usar después.`:" — superas los 32 iniciales: solo corresponde a personajes con progreso.")+(l.n<=5?" La habilidad pasiva es solo para personajes que superen el nivel 5.":"")+(D.stats[2]>=8?" Truco 8 o más: puede desarrollar intangibilidad.":"")};lvu();
+ let fa=0;const multi=()=>!!(D.formas&&D.formas.length>1),cs=()=>multi()&&fa>0?D.formas[fa].s:D.stats;
+  const fix=()=>{if(multi()){D.formas[0].s=D.stats;D.formas.forEach((x,i)=>{x.n=(x.n||"").trim()||"Forma "+(i+1);x.c=x.c||FCOL[i%FCOL.length];x.d=x.d||""})}else{delete D.formas}if(!multi()||fa>=D.formas.length)fa=0};
+  const rd=()=>$("#rd").innerHTML=multi()?radarN(D.formas,fa,true):radar(D.stats);
+  const slr=()=>{$("#sl").innerHTML=STATS.map((n,i)=>`<div class="stat"><span>${n}</span><input type="range" min="1" max="10" value="${cs()[i]}" data-s="${i}"><b>${cs()[i]}</b></div>`).join("");
+   document.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{cs()[r.dataset.s]=+r.value;r.nextElementSibling.textContent=r.value;rd();lvu()})};
+  const ftr=()=>{fix();const m=multi(),F=D.formas||[];
+   $("#ftw").innerHTML=m?`<div class="ftabs">${F.map((x,i)=>`<button type="button" class="fchip${i==fa?" on":""}" data-fi="${i}" style="--fc:${x.c}"><i style="background:${x.c}"></i><span>${esc(x.n)||"Forma "+(i+1)}</span></button>`).join("")}${F.length<6?`<button type="button" class="fchip add" id="fadd">+ Añadir forma</button>`:""}</div>`
+    :`<p style="margin:0 0 8px;color:var(--mut);font-size:.85rem">Este personaje tiene una sola forma de stats. Si puede cambiar entre formas (nunca a la vez), añade otra.</p><button type="button" class="sec" id="fadd" style="margin-bottom:10px">+ Añadir otra forma</button>`;
+   $("#fmw").innerHTML=m?`<div class="fmeta"><label>Nombre de la forma</label><input id="fn" maxlength="30" value="${esc(F[fa].n)}"><label>Color en la gráfica</label><div class="sw">${FCOL.map(c=>`<button type="button" class="swb" data-fc="${c}" style="background:${c}"></button>`).join("")}<input type="color" id="fcol" value="${F[fa].c}"></div><label>¿Cuándo y cómo se usa esta forma?</label><textarea id="fd" maxlength="300" placeholder="Ej.: Enfoque en velocidad y maniobras. Ideal para el control del flujo.">${esc(F[fa].d)}</textarea><p style="margin:6px 0 0;color:var(--mut);font-size:.8rem">Las formas son alternativas: nunca se aplican a la vez.</p>${fa>0?`<button type="button" class="red" id="frm" style="margin-top:8px">Quitar esta forma</button>`:""}</div>`:"";
+   const all2=()=>{ftr();slr();rd();lvu()};
+   document.querySelectorAll("#ftw [data-fi]").forEach(b=>b.onclick=()=>{fa=+b.dataset.fi;all2()});
+   if($("#fadd"))$("#fadd").onclick=()=>{if(!multi())D.formas=[{n:"Forma 1",c:FCOL[0],d:"",s:D.stats},{n:"Forma 2",c:FCOL[1],d:"",s:[...D.stats]}];else D.formas.push({n:"Forma "+(D.formas.length+1),c:FCOL[D.formas.length%FCOL.length],d:"",s:[...D.stats]});fa=D.formas.length-1;all2();draft()};
+   if(m){const setc=c=>{D.formas[fa].c=c;$("#fcol").value=c;const b=document.querySelector(`#ftw [data-fi="${fa}"]`);b.style.setProperty("--fc",c);b.querySelector("i").style.background=c;rd()};
+    $("#fn").oninput=e=>{D.formas[fa].n=e.target.value;document.querySelector(`#ftw [data-fi="${fa}"] span`).textContent=e.target.value||"Forma "+(fa+1)};
+    $("#fd").oninput=e=>{D.formas[fa].d=e.target.value};
+    document.querySelectorAll("#fmw [data-fc]").forEach(b=>b.onclick=()=>{setc(b.dataset.fc);draft()});$("#fcol").oninput=e=>setc(e.target.value);
+    if($("#frm"))$("#frm").onclick=()=>{if(confirm("¿Quitar esta forma?")){D.formas.splice(fa,1);fa=0;all2();draft()}}}};
+ const lvu=()=>{const st=cs();for(let i=0;i<5;i++)st[i]=Math.max(1,st[i]);const t=st.reduce((a,b)=>a+b,0),l=lv(st),b0=lv(D.stats),tb=D.stats.reduce((a,b)=>a+b,0);D.nivel=b0.n;D.rango=b0.r;
+   $("#lvb").innerHTML=`Nivel <b>${l.n}</b> · Rango <b>${l.r}</b>`;
+   $("#lvn").textContent=`${t} puntos usados`+(t==32?" — justo los 32 iniciales.":t<32?` — te sobran ${32-t}, y los puntos sobrantes no se pueden usar después.`:" — superas los 32 iniciales: solo corresponde a personajes con progreso.")+(l.n<=5?" La habilidad pasiva es solo para personajes que superen el nivel 5.":"")+(st[2]>=8?" Truco 8 o más: puede desarrollar intangibilidad.":"")+(multi()&&t!=tb?` Esta forma suma ${t} y la forma 1 suma ${tb}: las formas suelen redistribuir los mismos puntos.`:"")};ftr();slr();rd();lvu();
  const ap=()=>{document.querySelector("form").style.cssText=theme(D.color);$("#col").value=D.color};ap();
  document.querySelectorAll(".swb").forEach(b=>b.onclick=()=>{D.color=b.dataset.c;ap();draft()});$("#col").oninput=e=>{D.color=e.target.value;ap();draft()};
  document.querySelectorAll("[data-k]").forEach(e=>e.oninput=()=>D[e.dataset.k]=e.value);
- let tm;const draft=()=>{clearTimeout(tm);$("#as").textContent="Guardando borrador…";tm=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify({d:D,t:Date.now()}));$("#as").textContent="✔ Borrador guardado automáticamente"}catch(e){$("#as").textContent="⚠ No se pudo guardar el borrador (¿imagen muy pesada?)"}},600)};
+ let tm;const draft=()=>{clearTimeout(tm);$("#as").textContent="Guardando borrador…";tm=setTimeout(()=>{if(!$("#as"))return;try{localStorage.setItem(KEY,JSON.stringify({d:D,t:Date.now()}));$("#as").textContent="✔ Borrador guardado automáticamente"}catch(e){$("#as").textContent="⚠ No se pudo guardar el borrador (¿imagen muy pesada?)"}},600)};
  document.querySelector("form").addEventListener("input",draft);
  if($("#nd"))$("#nd").onclick=()=>{try{localStorage.removeItem(KEY)}catch(e){}form(id)};
  const vis=()=>{$("#w-anio").style.display=D.etapa===ETAPAS[0]?"":"none";$("#w-egreso").style.display=EG.includes(D.etapa)?"":"none"};document.querySelector("[data-k=etapa]").addEventListener("input",vis);vis();
  let pg=D.genero;
  const natRefresh=m=>{const p=m=="origen"?D.origen:(PAISES.find(x=>nat(x,pg)===D.nacionalidad)||D.origen);pg=D.genero;if(p&&DEM[p])D.nacionalidad=nat(p,D.genero);document.querySelector("[data-k=nacionalidad]").innerHTML=natOptions()};
  ["origen","genero"].forEach(k=>document.querySelector(`[data-k=${k}]`).addEventListener("input",()=>natRefresh(k)));
- document.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{D.stats[r.dataset.s]=+r.value;r.nextElementSibling.textContent=r.value;rd();lvu()});
+ 
  $("#img").onchange=async e=>{if(e.target.files[0]){D.img=await compress(e.target.files[0]);$("#pv").src=D.img;$("#pv").style.display="block";draft()}};
  const tb=()=>{
   $("#techs").innerHTML=D.techs.map((t,i)=>{const bs=t.cat=="Base",df=t.cat=="Definitiva",fl=(k,l)=>`<label>${l}</label><input data-t="${i}" data-f="${k}" value="${esc(t[k])}">`;
@@ -417,7 +458,7 @@ async function form(id){
  $("#addT").onclick=()=>{D.techs.push({cat:"Ataque",nombre:"",desc:"",alcance:"",uso:"",duracion:"",enfr:""});tb();draft()};
  $("#sv").onclick=async()=>{
   if(!D.nombre){alert("Escribe al menos los nombres del personaje.");return}
-  if(!id)D.createdAt=Date.now();D.uid=ME.id;D.autor=ME.username;
+  fix();if(!id)D.createdAt=Date.now();D.uid=ME.id;D.autor=ME.username;
   $("#sv").textContent="Guardando…";const {id:_,...o}=D;
   try{const nid=await db.save(o,id);cache=null;sessionStorage.removeItem("ok");try{localStorage.removeItem(KEY)}catch(e){}location.hash="#ficha/"+nid}catch(e){alert("Error al guardar: "+e.message);$("#sv").textContent="Reintentar"}};
 }
