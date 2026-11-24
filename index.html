@@ -99,8 +99,10 @@ nav b.brand{display:flex;align-items:center;gap:10px}
 
 /* ---- Navegación: escritorio (opción C) y celular (opción D) ---- */
 nav b.brand{margin-right:0;flex:none}
-nav .nl{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 0 22px}
-nav .nr{display:flex;align-items:center;gap:8px;margin-left:auto}
+nav .nl{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 0 auto}
+nav .nsep{width:1px;height:28px;background:var(--line);margin:0 14px;flex:none}
+nav .nr{display:flex;align-items:center;gap:8px}
+nav .ntop{display:none}
 @media(min-width:761px){nav{padding-left:max(18px,calc((100% - 1380px)/2 + 16px));padding-right:max(18px,calc((100% - 1380px)/2 + 16px))}}
 nav a.ncr{border:1.5px solid var(--acc);color:var(--acc2)}
 nav a.ncr:hover,nav a.ncr.on{background:var(--acc);color:var(--on,#0b2417)}
@@ -116,12 +118,17 @@ nav a.ncr:hover,nav a.ncr.on{background:var(--acc);color:var(--on,#0b2417)}
 #bnav,#sheetw{display:none}
 @media(max-width:760px){
  nav{padding:10px 14px;flex-wrap:nowrap}
- nav .nl,nav .nr{display:none}
+ nav .nl,nav .nr,nav .nsep{display:none}
+ nav .ntop{display:inline-flex;align-items:center;padding:5px 12px;margin-left:12px;font-size:.88rem;flex:none}
+ nav .ntop.open{border-color:var(--acc);color:var(--acc2)}
+ nav b.brand{font-size:1rem;gap:8px;min-width:0}
+ nav b.brand img{height:32px!important}
+ nav .ntop{padding:5px 10px;margin-left:8px;font-size:.82rem;white-space:nowrap}
  body.hasbar{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
  #bnav{display:grid;grid-template-columns:repeat(5,1fr);align-items:end;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(8px + env(safe-area-inset-bottom,0px))}
  #bnav .nb{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding:4px 0;background:transparent;border:0;border-radius:10px;color:var(--mut);font-size:.72rem;font-weight:600;line-height:1.2}
  #bnav .nb i{font-style:normal;font-size:1.4rem;line-height:1;display:flex;align-items:center;justify-content:center;height:30px}
- #bnav .nb.on,#bnav .nb.open{color:var(--acc2)}
+ #bnav .nb.on{color:var(--acc2)}
  #bnav .nb.mid{color:var(--ink)}
  #bnav .nb.mid i{width:58px;height:58px;margin-top:-28px;border-radius:50%;background:var(--acc);color:var(--on,#0b2417);font-size:2.1rem;font-weight:700;box-shadow:0 0 0 5px var(--card),0 6px 16px rgba(0,0,0,.35)}
  #sheetw{display:block}#sheetw[hidden]{display:none}
@@ -208,16 +215,16 @@ async function loadUsers(){try{ROLES=Object.fromEntries((await db.roles()).map(r
 const beat=()=>{if(ME&&!document.hidden){if(USERS[ME.id])USERS[ME.id].lastSeen=Date.now();db.setUser(ME.id,{lastSeen:Date.now()}).catch(()=>{})}};
 const authErr=e=>({"auth/email-already-in-use":"Ese usuario ya existe. Elige otro.","auth/weak-password":"La contraseña debe tener mínimo 6 caracteres.","auth/invalid-credential":"Usuario o contraseña incorrectos.","auth/wrong-password":"Usuario o contraseña incorrectos.","auth/user-not-found":"Usuario o contraseña incorrectos.","auth/operation-not-allowed":"Falta activar Correo/contraseña en Firebase Authentication.","auth/too-many-requests":"Demasiados intentos. Espera un momento."}[e.code]||e.message);
 
-function closeMenus(){const m=$("#umenu"),b=$("#umb"),w=$("#sheetw"),p=$("#pfm"),c=$("#tgm");if(m)m.hidden=true;if(b)b.setAttribute("aria-expanded","false");if(w)w.hidden=true;if(p)p.classList.remove("open");if(c&&!$("#side").classList.contains("show"))c.classList.remove("open")}
+function closeMenus(){const m=$("#umenu"),b=$("#umb"),w=$("#sheetw"),p=$("#pfm"),c=$("#tgt");if(m)m.hidden=true;if(b)b.setAttribute("aria-expanded","false");if(w)w.hidden=true;if(p)p.classList.remove("open");if(c&&!$("#side").classList.contains("show"))c.classList.remove("open")}
 function nav(){
  const adm=isAdmin();
- $("#nav").innerHTML=`<b class="brand"><img id="lg" src="${LOGO[curLogo]}" alt="" style="height:38px;width:auto">${TITULO}</b>`+(ME?`<div class="nl"><a href="#inicio" data-n="inicio">Inicio</a><a href="#galeria" data-n="galeria">Galería</a><a href="#guia" data-n="guia">📖 Guía</a><a href="#crear" data-n="crear" class="ncr">+ Crear ficha</a></div><div class="nr"><button class="sec" id="tg" style="padding:5px 12px">👥 Comunidad</button><div class="um"><button class="sec" id="umb" aria-haspopup="true" aria-expanded="false">${av(ME,26)}<span>${esc(ME.username)}</span><small>▾</small></button><div class="umenu" id="umenu" hidden><a class="mi" href="#perfil/${ME.id}"><span>👤</span>Mi perfil</a>${adm?`<a class="mi" href="#admin"><span>🛡</span>Admin</a>`:""}<hr><button class="mi" data-act="out"><span>↩</span>Salir</button></div></div></div>`:"");
- $("#bnav").innerHTML=ME?`<a class="nb" href="#inicio" data-n="inicio"><i>🏠</i>Inicio</a><a class="nb" href="#galeria" data-n="galeria"><i>🖼</i>Galería</a><a class="nb mid" href="#crear" data-n="crear"><i>+</i>Crear</a><button class="nb" id="tgm"><i>👥</i>Comunidad</button><button class="nb" id="pfm" data-n="perfil,guia,admin"><i>${av(ME,28)}</i>Perfil</button>`:"";
- $("#sheetw").innerHTML=ME?`<div class="ov" id="ov"></div><div class="sh2"><a class="mi" href="#perfil/${ME.id}"><span>👤</span>Mi perfil</a><a class="mi" href="#guia"><span>📖</span>Guía</a>${adm?`<a class="mi" href="#admin"><span>🛡</span>Admin</a>`:""}<hr><button class="mi" data-act="out"><span>↩</span>Salir</button></div>`:"";
+ $("#nav").innerHTML=`<b class="brand"><img id="lg" src="${LOGO[curLogo]}" alt="" style="height:38px;width:auto">${TITULO}</b>`+(ME?`<button class="sec ntop" id="tgt">👥 Comunidad</button><div class="nl"><a href="#inicio" data-n="inicio">Inicio</a><a href="#galeria" data-n="galeria">Galería</a><a href="#guia" data-n="guia">📖 Guía</a><a href="#crear" data-n="crear" class="ncr">+ Crear ficha</a></div><div class="nsep"></div><div class="nr"><button class="sec" id="tg" style="padding:5px 12px">👥 Comunidad</button><div class="um"><button class="sec" id="umb" aria-haspopup="true" aria-expanded="false">${av(ME,26)}<span>${esc(ME.username)}</span><small>▾</small></button><div class="umenu" id="umenu" hidden><a class="mi" href="#perfil/${ME.id}"><span>👤</span>Mi perfil</a>${adm?`<a class="mi" href="#admin"><span>🛡</span>Admin</a>`:""}<hr><button class="mi" data-act="out"><span>↩</span>Salir</button></div></div></div>`:"");
+ $("#bnav").innerHTML=ME?`<a class="nb" href="#inicio" data-n="inicio"><i>🏠</i>Inicio</a><a class="nb" href="#galeria" data-n="galeria"><i>🖼</i>Galería</a><a class="nb mid" href="#crear" data-n="crear"><i>+</i>Crear</a><a class="nb" href="#guia" data-n="guia"><i>📖</i>Guía</a><button class="nb" id="pfm" data-n="perfil,admin"><i>${av(ME,28)}</i>Perfil</button>`:"";
+ $("#sheetw").innerHTML=ME?`<div class="ov" id="ov"></div><div class="sh2"><a class="mi" href="#perfil/${ME.id}"><span>👤</span>Mi perfil</a>${adm?`<a class="mi" href="#admin"><span>🛡</span>Admin</a>`:""}<hr><button class="mi" data-act="out"><span>↩</span>Salir</button></div>`:"";
  $("#sheetw").hidden=true;document.body.classList.toggle("hasbar",!!ME);
  if(!ME)return;
  $("#tg").onclick=togSide;
- $("#tgm").onclick=()=>{closeMenus();togSide();$("#tgm").classList.toggle("open",$("#side").classList.contains("show"))};
+ $("#tgt").onclick=()=>{closeMenus();togSide();$("#tgt").classList.toggle("open",$("#side").classList.contains("show"))};
  $("#umb").onclick=()=>{const m=$("#umenu"),abrir=m.hidden;closeMenus();m.hidden=!abrir;$("#umb").setAttribute("aria-expanded",String(abrir))};
  $("#pfm").onclick=()=>{const w=$("#sheetw"),abrir=w.hidden;closeMenus();w.hidden=!abrir;$("#pfm").classList.toggle("open",abrir)};
  $("#ov").onclick=closeMenus;
