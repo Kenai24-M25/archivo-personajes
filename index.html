@@ -137,6 +137,21 @@ nav a.ncr:hover,nav a.ncr.on{background:var(--acc);color:var(--on,#0b2417)}
  .sh2 .mi{padding:14px 14px;font-size:1.05rem}
  #side.show{left:10px;right:10px;top:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px));max-height:none}
 }
+.bell{position:relative;padding:5px 11px;font-size:1rem;line-height:1.2;flex:none}
+.bc{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#e11d48;color:#fff;font:700 .7rem/18px system-ui,sans-serif;text-align:center}
+.bc[hidden]{display:none}
+nav .bm{display:none}
+.npan{position:fixed;top:64px;right:max(18px,calc((100% - 1380px)/2 + 16px));width:min(380px,calc(100vw - 20px));max-height:min(70vh,520px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.35);z-index:40;padding:8px}
+.npan[hidden]{display:none}
+.nt{display:flex;gap:6px;margin-bottom:6px}.nt button{flex:1;padding:7px 8px;font-size:.9rem}
+.ni{display:block;width:100%;text-align:left;padding:10px;border-radius:10px;background:transparent;color:var(--ink);border:0;font-weight:500;font-size:.92rem;line-height:1.35;text-decoration:none}
+.ni:hover{background:rgba(128,128,128,.15);color:var(--ink)}
+.ni.un{background:color-mix(in srgb,var(--acc) 14%,transparent);font-weight:700}
+.ni small{display:block;color:var(--mut);font-weight:400;margin-top:2px}
+.ni p{margin:2px 0 0;color:var(--mut);font-weight:400;font-size:.85rem}
+.npe{padding:14px;color:var(--mut);text-align:center}
+.npf{display:block;text-align:center;padding:8px;font-weight:600;color:var(--acc2)}
+@media(max-width:760px){nav .bm{display:inline-flex;align-items:center;margin-left:6px;padding:5px 9px}.npan{top:56px;right:10px;left:10px;width:auto}}
 </style>
 </head>
 <body>
@@ -208,17 +223,21 @@ async function initDB(){
   addFoto:o=>F.addDoc(col("fotos"),o),setFoto:(id,d)=>F.updateDoc(dc("fotos",id),d),delFoto:id=>F.deleteDoc(dc("fotos",id)),
   coms:async fid=>(await F.getDocs(F.query(col("comentarios"),F.where("fichaId","==",fid)))).docs.map(mp),
   addCom:o=>F.addDoc(col("comentarios"),o),delCom:id=>F.deleteDoc(dc("comentarios",id)),
-  roles:async()=>(await F.getDocs(col("roles"))).docs.map(mp),setRole:(uid,d)=>F.setDoc(dc("roles",uid),d),delRole:uid=>F.deleteDoc(dc("roles",uid)),setRaza:(id,raza)=>F.updateDoc(dc("fichas",id),{raza})};
+  roles:async()=>(await F.getDocs(col("roles"))).docs.map(mp),setRole:(uid,d)=>F.setDoc(dc("roles",uid),d),delRole:uid=>F.deleteDoc(dc("roles",uid)),setRaza:(id,raza)=>F.updateDoc(dc("fichas",id),{raza}),
+  watchNotifs:(uid,cb)=>F.onSnapshot(F.query(col("notificaciones"),F.where("para","==",uid)),q=>cb(q.docs.map(mp)),()=>{}),
+  watchNov:cb=>F.onSnapshot(F.query(col("novedades"),F.orderBy("createdAt","desc"),F.limit(30)),q=>cb(q.docs.map(mp)),()=>{}),
+  addNotif:o=>F.addDoc(col("notificaciones"),o),readNotif:id=>F.updateDoc(dc("notificaciones",id),{leido:true}),delNotif:id=>F.deleteDoc(dc("notificaciones",id)),
+  saveNov:(o,id)=>id?F.updateDoc(dc("novedades",id),o):F.addDoc(col("novedades"),o),delNov:id=>F.deleteDoc(dc("novedades",id))};
 }
 const all=async(force)=>cache&&!force?cache:(cache=await db.list());
 async function loadUsers(){try{ROLES=Object.fromEntries((await db.roles()).map(r=>[r.id,r.rol]))}catch(e){}const u={};(await db.users()).forEach(x=>u[x.id]=x);USERS=u;if(ME)ME=USERS[ME.id]||ME}
 const beat=()=>{if(ME&&!document.hidden){if(USERS[ME.id])USERS[ME.id].lastSeen=Date.now();db.setUser(ME.id,{lastSeen:Date.now()}).catch(()=>{})}};
 const authErr=e=>({"auth/email-already-in-use":"Ese usuario ya existe. Elige otro.","auth/weak-password":"La contraseña debe tener mínimo 6 caracteres.","auth/invalid-credential":"Usuario o contraseña incorrectos.","auth/wrong-password":"Usuario o contraseña incorrectos.","auth/user-not-found":"Usuario o contraseña incorrectos.","auth/operation-not-allowed":"Falta activar Correo/contraseña en Firebase Authentication.","auth/too-many-requests":"Demasiados intentos. Espera un momento."}[e.code]||e.message);
 
-function closeMenus(){const m=$("#umenu"),b=$("#umb"),w=$("#sheetw"),p=$("#pfm"),c=$("#tgt");if(m)m.hidden=true;if(b)b.setAttribute("aria-expanded","false");if(w)w.hidden=true;if(p)p.classList.remove("open");if(c&&!$("#side").classList.contains("show"))c.classList.remove("open")}
+function closeMenus(){const np=$("#npan");if(np)np.hidden=true;const m=$("#umenu"),b=$("#umb"),w=$("#sheetw"),p=$("#pfm"),c=$("#tgt");if(m)m.hidden=true;if(b)b.setAttribute("aria-expanded","false");if(w)w.hidden=true;if(p)p.classList.remove("open");if(c&&!$("#side").classList.contains("show"))c.classList.remove("open")}
 function nav(){
- const adm=isAdmin();
- $("#nav").innerHTML=`<b class="brand"><img id="lg" src="${LOGO[curLogo]}" alt="" style="height:38px;width:auto">${TITULO}</b>`+(ME?`<button class="sec ntop" id="tgt">👥 Comunidad</button><div class="nl"><a href="#inicio" data-n="inicio">Inicio</a><a href="#galeria" data-n="galeria">Galería</a><a href="#guia" data-n="guia">📖 Guía</a><a href="#crear" data-n="crear" class="ncr">+ Crear ficha</a></div><div class="nsep"></div><div class="nr"><button class="sec" id="tg" style="padding:5px 12px">👥 Comunidad</button><div class="um"><button class="sec" id="umb" aria-haspopup="true" aria-expanded="false">${av(ME,26)}<span>${esc(ME.username)}</span><small>▾</small></button><div class="umenu" id="umenu" hidden><a class="mi" href="#perfil/${ME.id}"><span>👤</span>Mi perfil</a>${adm?`<a class="mi" href="#admin"><span>🛡</span>Admin</a>`:""}<hr><button class="mi" data-act="out"><span>↩</span>Salir</button></div></div></div>`:"");
+ const adm=isAdmin();if(!$("#npan"))document.body.insertAdjacentHTML("beforeend",'<div id="npan" class="npan" hidden></div>');
+ $("#nav").innerHTML=`<b class="brand"><img id="lg" src="${LOGO[curLogo]}" alt="" style="height:38px;width:auto">${TITULO}</b>`+(ME?`<button class="sec ntop" id="tgt">👥 Comunidad</button><button class="sec bell bm" data-bell title="Avisos y novedades">🔔<b class="bc" hidden></b></button><div class="nl"><a href="#inicio" data-n="inicio">Inicio</a><a href="#galeria" data-n="galeria">Galería</a><a href="#guia" data-n="guia">📖 Guía</a><a href="#crear" data-n="crear" class="ncr">+ Crear ficha</a></div><div class="nsep"></div><div class="nr"><button class="sec bell" data-bell title="Avisos y novedades">🔔<b class="bc" hidden></b></button><button class="sec" id="tg" style="padding:5px 12px">👥 Comunidad</button><div class="um"><button class="sec" id="umb" aria-haspopup="true" aria-expanded="false">${av(ME,26)}<span>${esc(ME.username)}</span><small>▾</small></button><div class="umenu" id="umenu" hidden><a class="mi" href="#perfil/${ME.id}"><span>👤</span>Mi perfil</a>${adm?`<a class="mi" href="#admin"><span>🛡</span>Admin</a>`:""}<hr><button class="mi" data-act="out"><span>↩</span>Salir</button></div></div></div>`:"");
  $("#bnav").innerHTML=ME?`<a class="nb" href="#inicio" data-n="inicio"><i>🏠</i>Inicio</a><a class="nb" href="#galeria" data-n="galeria"><i>🖼</i>Galería</a><a class="nb mid" href="#crear" data-n="crear"><i>+</i>Crear</a><a class="nb" href="#guia" data-n="guia"><i>📖</i>Guía</a><button class="nb" id="pfm" data-n="perfil,admin"><i>${av(ME,28)}</i>Perfil</button>`:"";
  $("#sheetw").innerHTML=ME?`<div class="ov" id="ov"></div><div class="sh2"><a class="mi" href="#perfil/${ME.id}"><span>👤</span>Mi perfil</a>${adm?`<a class="mi" href="#admin"><span>🛡</span>Admin</a>`:""}<hr><button class="mi" data-act="out"><span>↩</span>Salir</button></div>`:"";
  $("#sheetw").hidden=true;document.body.classList.toggle("hasbar",!!ME);
@@ -229,15 +248,54 @@ function nav(){
  $("#pfm").onclick=()=>{const w=$("#sheetw"),abrir=w.hidden;closeMenus();w.hidden=!abrir;$("#pfm").classList.toggle("open",abrir)};
  $("#ov").onclick=closeMenus;
  document.querySelectorAll("[data-act=out]").forEach(b=>b.onclick=()=>{closeMenus();AU.signOut(A)});
- document.querySelectorAll(".umenu a.mi,.sh2 a.mi").forEach(a=>a.addEventListener("click",closeMenus))}
+ document.querySelectorAll(".umenu a.mi,.sh2 a.mi").forEach(a=>a.addEventListener("click",closeMenus));
+ document.querySelectorAll("[data-bell]").forEach(b=>b.onclick=togBell);renderBell()}
 function side(){if(!ME){$("#side").innerHTML="";return}
  const us=Object.values(USERS).sort((a,b)=>(isOn(b)-isOn(a))||((b.lastSeen||0)-(a.lastSeen||0))),on=us.filter(isOn).length;
  $("#side").innerHTML=`<h3 style="margin:0 0 2px">👥 Comunidad</h3><small style="color:var(--mut)">${on} activos · ${us.length-on} inactivos</small><div style="margin-top:8px">${us.map(u=>`<a class="us" href="#perfil/${u.id}">${av(u,34)}<span><b>${esc(u.username)}</b>${ROLES[u.id]?`<em class="tag" style="font-style:normal;margin:0 0 0 4px">${ROLES[u.id]=="admin"?"Admin":"Mod"}</em>`:""}<small>${isOn(u)?"Activo ahora":"Visto "+ago(u.lastSeen)}</small></span><i class="dot ${isOn(u)?"on":""}"></i></a>`).join("")}</div>`}
+/* ---------- Avisos y novedades ---------- */
+let NOTIFS=[],NOVS=[],unN=null,unV=null,NTAB="a",NPREV=0;
+const nseen=()=>(ME&&(ME.novVisto||ME.createdAt))||0;
+const nUnread=()=>NOTIFS.filter(n=>!n.leido).length,nvNew=()=>NOVS.filter(n=>n.createdAt>nseen()).length;
+const NIC={comentario:"💬",ficha:"🎭",rol:"🛡"};
+async function notif(para,tipo,texto,link){if(!ME||!para||para===ME.id)return;try{await db.addNotif({para,de:ME.id,tipo,texto:String(texto).slice(0,160),link:link||"",leido:false,createdAt:Date.now()})}catch(e){}}
+function stopN(){if(unN)unN();if(unV)unV();unN=unV=null}
+const curPage=()=>(location.hash.slice(1)||"inicio").split("/")[0];
+function watchN(){stopN();if(!ME)return;
+ unN=db.watchNotifs(ME.id,l=>{const old=Date.now()-6048e5;l.filter(n=>n.leido&&n.createdAt<old).forEach(n=>db.delNotif(n.id).catch(()=>{}));NOTIFS=l.filter(n=>!(n.leido&&n.createdAt<old)).sort((a,b)=>b.createdAt-a.createdAt);renderBell()});
+ unV=db.watchNov(l=>{NOVS=l;if(curPage()=="novedades"){drawNov();seeNov()}renderBell()})}
+function seeNov(){if(!ME||!NOVS.length)return;const t=Math.max(...NOVS.map(n=>n.createdAt||0));if(t<=nseen())return;ME.novVisto=t;if(USERS[ME.id])USERS[ME.id].novVisto=t;db.setUser(ME.id,{novVisto:t}).catch(()=>{});renderBell()}
+function renderBell(){const n=nUnread()+nvNew();document.querySelectorAll(".bc").forEach(b=>{b.hidden=!n;b.textContent=n>9?"9+":n});const p=$("#npan");if(p&&!p.hidden)drawPanel()}
+function togBell(e){if(e)e.stopPropagation();const p=$("#npan"),abrir=p.hidden;closeMenus();if(abrir){NPREV=nseen();NTAB=nUnread()||!nvNew()?"a":"n";p.hidden=false;drawPanel();if(NTAB=="n")seeNov()}}
+function drawPanel(){const p=$("#npan"),un=nUnread(),nn=nvNew();
+ const tabs=`<div class="nt"><button class="${NTAB=="a"?"":"sec"}" data-nt="a">🔔 Avisos${un?" ("+un+")":""}</button><button class="${NTAB=="n"?"":"sec"}" data-nt="n">📣 Novedades${nn?" ("+nn+")":""}</button></div>`;
+ let body;
+ if(NTAB=="a")body=(un?`<button class="sec" data-nall style="width:100%;margin-bottom:4px;padding:6px;font-size:.85rem">Marcar todo como leído</button>`:"")+(NOTIFS.length?NOTIFS.slice(0,30).map(n=>`<button class="ni ${n.leido?"":"un"}" data-ni="${n.id}">${NIC[n.tipo]||"🔔"} ${esc(n.texto)}<small>${ago(n.createdAt)}</small></button>`).join(""):`<div class="npe">No tienes avisos.</div>`);
+ else body=(NOVS.length?NOVS.slice(0,10).map(n=>`<a class="ni" href="${esc(n.link||"#novedades")}">📣 <b>${esc(n.titulo)}</b>${n.createdAt>NPREV?' <em class="tag" style="font-style:normal">Nuevo</em>':""}<p>${esc(n.texto)}</p><small>${ago(n.createdAt)}</small></a>`).join("")+`<a class="npf" href="#novedades">Ver todas</a>`:`<div class="npe">Aún no hay novedades.</div>`);
+ p.innerHTML=tabs+body;
+ p.querySelectorAll("[data-nt]").forEach(b=>b.onclick=()=>{NTAB=b.dataset.nt;drawPanel();if(NTAB=="n")seeNov()});
+ const all_=p.querySelector("[data-nall]");if(all_)all_.onclick=()=>NOTIFS.filter(n=>!n.leido).forEach(n=>{n.leido=true;db.readNotif(n.id).catch(()=>{});renderBell()});
+ p.querySelectorAll("[data-ni]").forEach(b=>b.onclick=()=>{const n=NOTIFS.find(x=>x.id==b.dataset.ni);if(!n)return;if(!n.leido){n.leido=true;db.readNotif(n.id).catch(()=>{})}closeMenus();renderBell();if(n.link){if(location.hash==n.link)route();else location.hash=n.link}});
+ p.querySelectorAll("a").forEach(a=>a.addEventListener("click",closeMenus))}
+function drawNov(){$("#app").innerHTML=`<h2>📣 Novedades de la página</h2><p style="color:var(--mut)">Lo nuevo que se va agregando.</p>${NOVS.length?`<div class="lst">${NOVS.map(n=>`<div class="r2"><div class="rb"><span class="rt">${esc(n.titulo)}</span>${n.createdAt>NPREV?' <em class="tag" style="font-style:normal">Nuevo</em>':""}<p style="display:block;-webkit-line-clamp:unset">${esc(n.texto)}</p><small style="color:var(--mut)">${ago(n.createdAt)}</small></div>${n.link?`<a class="btn" href="${esc(n.link)}">Míralo</a>`:""}</div>`).join("")}</div>`:`<div class="note">Aún no hay novedades.</div>`}${isAdmin()?`<p><a class="btn sec" href="#admin">✏️ Editar novedades</a></p>`:""}`}
+async function novedades(){NPREV=nseen();drawNov();seeNov()}
+const NLINKS=[["","Sin botón"],["#inicio","Inicio"],["#galeria","Galería"],["#guia","Guía"],["#crear","Crear ficha"]];
+function novAdminHTML(){return`<h3 class="sh">📣 Novedades de la página <small style="color:var(--mut);font-weight:400">(todos las ven; solo tú las editas)</small></h3><div class="note"><label>Título</label><input id="nvt" maxlength="80" placeholder="Ej.: Nueva sección Guía"><label>Mensaje corto</label><textarea id="nvx" maxlength="300" rows="3" placeholder="Ej.: Ya puedes ver cómo se arma una ficha. ¡Míralo!"></textarea><label>El botón "Míralo" lleva a</label><select id="nvl">${NLINKS.map(l=>`<option value="${l[0]}">${l[1]}</option>`).join("")}</select><div class="row" style="margin-top:10px"><button id="nvs">Publicar</button><button class="sec" id="nvc" hidden>Cancelar edición</button></div><p id="nvm" style="color:var(--mut);min-height:1.4em;margin:8px 0 0"></p></div>${NOVS.length?`<div class="lst">${NOVS.map(n=>`<div class="r2"><div class="rb"><span class="rt">${esc(n.titulo)}</span><p style="display:block;-webkit-line-clamp:unset">${esc(n.texto)}</p><small style="color:var(--mut)">${ago(n.createdAt)}</small></div><button class="sec" data-ne="${n.id}">Editar</button><button class="red" data-nd="${n.id}">Borrar</button></div>`).join("")}</div>`:""}`}
+function novAdminInit(){let eid=null;const m=t=>$("#nvm").textContent=t;
+ const rs=()=>{eid=null;$("#nvt").value="";$("#nvx").value="";$("#nvl").value="";$("#nvs").textContent="Publicar";$("#nvc").hidden=true};
+ $("#nvc").onclick=()=>{rs();m("")};
+ $("#nvs").onclick=async()=>{const t=$("#nvt").value.trim(),x=$("#nvx").value.trim();if(!t||!x)return m("Escribe el título y el mensaje.");
+  $("#nvs").disabled=true;
+  try{const o={titulo:t.slice(0,80),texto:x.slice(0,300),link:$("#nvl").value};if(eid)await db.saveNov(o,eid);else await db.saveNov({...o,autor:ME.id,createdAt:Date.now()});
+   const ed=!!eid;await adminPanel();$("#nvm").textContent=ed?"✔ Novedad actualizada.":"✔ Novedad publicada. Ya les llega a todos."}
+  catch(e){alert("No se pudo guardar: "+e.message);$("#nvs").disabled=false}};
+ document.querySelectorAll("[data-ne]").forEach(b=>b.onclick=()=>{const n=NOVS.find(x=>x.id==b.dataset.ne);if(!n)return;eid=n.id;$("#nvt").value=n.titulo;$("#nvx").value=n.texto;$("#nvl").value=n.link||"";$("#nvs").textContent="Guardar cambios";$("#nvc").hidden=false;m("Editando una novedad.");$("#nvt").scrollIntoView({behavior:"smooth",block:"center"})});
+ document.querySelectorAll("[data-nd]").forEach(b=>b.onclick=async()=>{if(!confirm("¿Borrar esta novedad?"))return;try{await db.delNov(b.dataset.nd);await adminPanel();$("#nvm").textContent="✔ Novedad borrada."}catch(e){alert("No se pudo borrar: "+e.message)}})}
 async function start(u){
- if(!u){ME=null;nav();side();gate();return}
+ if(!u){stopN();NOTIFS=[];NOVS=[];ME=null;nav();side();gate();return}
  await loadUsers();
  if(!USERS[u.uid]){await db.setUser(u.uid,{username:pn||u.email.split("@")[0],avatar:"",createdAt:Date.now(),lastSeen:Date.now()});await loadUsers()}
- ME=USERS[u.uid];if(ME.tema>=0&&ME.tema<THEMES.length&&ME.tema!==TEMA)setTema(ME.tema,false);beat();nav();side();route()}
+ ME=USERS[u.uid];if(ME.tema>=0&&ME.tema<THEMES.length&&ME.tema!==TEMA)setTema(ME.tema,false);beat();nav();side();watchN();route()}
 function gate(){
  $("#app").innerHTML=`<section class="hero"><img src="${LOGO[curLogo]}" alt="" style="height:96px;width:auto;margin-bottom:6px"><h1>${TITULO}</h1><div class="orn">✦</div><p>Registro de fichas · inicia sesión o crea tu cuenta para entrar.</p></section><div class="auth"><div class="row" style="margin:0 0 8px"><button id="t1">Ingresar</button><button class="sec" id="t2">Registrarse</button></div><label>Usuario (será tu nombre de creador/a)</label><input id="u" maxlength="20" autocomplete="username"><label>Contraseña</label><input id="p" type="password" autocomplete="current-password"><div id="p2w" style="display:none"><label>Repite la contraseña</label><input id="p2" type="password"></div><p id="er" style="color:#d33;min-height:1.3em;margin:8px 0"></p><button id="go">Ingresar</button><p style="color:var(--mut);font-size:.8rem">Solo letras, números y _ (3 a 20). No hay recuperación de contraseña: guárdala bien.</p></div>`;
  let reg=false;const mode=r=>{reg=r;$("#p2w").style.display=r?"":"none";$("#go").textContent=r?"Crear cuenta":"Ingresar";$("#t1").className=r?"sec":"";$("#t2").className=r?"":"sec";$("#er").textContent=""};
@@ -364,7 +422,9 @@ async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p
  const FM=12,lb=q=>{const d=document.createElement("div");d.className="lb";d.innerHTML=`<img src="${q.img}" alt=""><p>${esc(q.caption)}</p>`;d.onclick=()=>d.remove();document.body.appendChild(d)};
  const gal=async()=>{let fs=[];try{fs=(await db.fotos(id)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))}catch(e){$("#gal").innerHTML="";return}
   let cs=[];try{cs=await db.coms(id)}catch(e){}
-  $("#gal").innerHTML=(fs.length||own?`<h2>📸 Galería del personaje <small style="color:var(--mut);font-weight:400">(${fs.length})</small></h2>`:"")
+  const fcs=cs.filter(c=>!c.fotoId).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const fch=`<h2>💬 Comentarios <small style="color:var(--mut);font-weight:400">(${fcs.length})</small></h2><div class="lst"><div class="cms" style="border-top:0;font-size:.92rem"><div class="cl" style="max-height:320px">${fcs.map(c=>`<div class="cm"><span><a href="#perfil/${c.uid}"><b>${esc(c.autor)}</b></a> ${esc(c.texto)}</span>${c.uid===ME.id||own||mod?`<button class="red" data-dc="${c.id}" title="Borrar comentario">✕</button>`:""}</div>`).join("")||"<small style='color:var(--mut)'>Sé la primera persona en comentar.</small>"}</div><div class="cf"><input id="fci" maxlength="300" placeholder="Comenta este personaje…"><button id="fcs">Enviar</button></div></div></div>`;
+  $("#gal").innerHTML=fch+(fs.length||own?`<h2>📸 Galería del personaje <small style="color:var(--mut);font-weight:400">(${fs.length})</small></h2>`:"")
   +(own?(fs.length<FM?`<details class="fadd"><summary class="btn sec" style="display:inline-block">+ Agregar foto</summary><div class="fbox"><label>Foto</label><input type="file" id="fi" accept="image/*"><label>¿Qué está haciendo el personaje en esta foto? (opcional)</label><textarea id="fc" maxlength="400" placeholder="Ej.: practicando con su técnica en la azotea de la universidad…"></textarea><div style="margin-top:10px"><button id="fu">Subir foto</button> <small id="fm" style="color:var(--mut)"></small></div></div></details>`:`<p style="color:var(--mut)">Llegaste al máximo de ${FM} fotos.</p>`):"")
   +(fs.length?`<div class="fg" style="margin-top:12px">${fs.map(q=>`<figure class="fo"><img src="${q.img}" data-z="${q.id}" alt=""><figcaption>${esc(q.caption)||"<i style='color:var(--mut)'>Sin descripción</i>"}${own||mod?`<div style="margin-top:6px">${own?`<button class="sec" data-e="${q.id}" style="padding:2px 10px;font-size:.78rem">Editar texto</button> `:""}<button class="red" data-x="${q.id}" style="padding:2px 10px;font-size:.78rem">Eliminar</button></div>`:""}</figcaption><div class="cms"><div class="cl">${cs.filter(c=>c.fotoId==q.id).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)).map(c=>`<div class="cm"><span><a href="#perfil/${c.uid}"><b>${esc(c.autor)}</b></a> ${esc(c.texto)}</span>${c.uid===ME.id||own||mod?`<button class="red" data-dc="${c.id}" title="Borrar comentario">✕</button>`:""}</div>`).join("")||"<small style='color:var(--mut)'>Sé la primera persona en comentar.</small>"}</div><div class="cf"><input data-ci="${q.id}" maxlength="300" placeholder="Comenta esta foto…"><button data-cs="${q.id}">Enviar</button></div></div></figure>`).join("")}</div>`:"");
   const by=i=>fs.find(q=>q.id==i);
@@ -372,7 +432,10 @@ async function ficha(id){const f=await db.get(id);if(!f){$("#app").innerHTML="<p
   document.querySelectorAll("[data-e]").forEach(b=>b.onclick=async()=>{const q=by(b.dataset.e),t=prompt("Describe qué está haciendo el personaje:",q.caption||"");if(t!==null){await db.setFoto(q.id,{caption:t.trim().slice(0,400)});gal()}});
   document.querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{if(confirm("¿Eliminar esta foto?")){try{for(const c of cs.filter(c=>c.fotoId==b.dataset.x))await db.delCom(c.id)}catch(e){}await db.delFoto(b.dataset.x);gal()}});
   document.querySelectorAll("[data-cs]").forEach(b=>b.onclick=async()=>{const i=document.querySelector(`[data-ci="${b.dataset.cs}"]`),t=i.value.trim();if(!t)return;b.disabled=true;
-   try{await db.addCom({fotoId:b.dataset.cs,fichaId:id,uid:ME.id,autor:ME.username,texto:t.slice(0,300),createdAt:Date.now()});gal()}catch(e){alert("No se pudo comentar: "+e.message);b.disabled=false}});
+   try{await db.addCom({fotoId:b.dataset.cs,fichaId:id,uid:ME.id,autor:ME.username,texto:t.slice(0,300),createdAt:Date.now()});notif(f.uid,"comentario",ME.username+" comentó en la ficha de "+(f.nombre||"tu personaje"),"#ficha/"+id);gal()}catch(e){alert("No se pudo comentar: "+e.message);b.disabled=false}});
+  if($("#fcs")){$("#fcs").onclick=async()=>{const t=$("#fci").value.trim();if(!t)return;$("#fcs").disabled=true;
+    try{await db.addCom({fotoId:"",fichaId:id,uid:ME.id,autor:ME.username,texto:t.slice(0,300),createdAt:Date.now()});notif(f.uid,"comentario",ME.username+" comentó en la ficha de "+(f.nombre||"tu personaje"),"#ficha/"+id);gal()}catch(e){alert("No se pudo comentar: "+e.message);$("#fcs").disabled=false}};
+   $("#fci").onkeydown=e=>{if(e.key=="Enter")$("#fcs").click()}}
   document.querySelectorAll("[data-ci]").forEach(i=>i.onkeydown=e=>{if(e.key=="Enter")document.querySelector(`[data-cs="${i.dataset.ci}"]`).click()});
   document.querySelectorAll("[data-dc]").forEach(b=>b.onclick=async()=>{if(confirm("¿Borrar este comentario?")){await db.delCom(b.dataset.dc);gal()}});
   if($("#fu"))$("#fu").onclick=async()=>{const fl=$("#fi").files[0];if(!fl){$("#fm").textContent="Elige una foto primero.";return}
@@ -515,7 +578,7 @@ async function form(id){
   if(!D.nombre){alert("Escribe al menos los nombres del personaje.");return}
   fix();if(!id)D.createdAt=Date.now();D.uid=ME.id;D.autor=ME.username;
   $("#sv").textContent="Guardando…";const {id:_,...o}=D;
-  try{const nid=await db.save(o,id);cache=null;sessionStorage.removeItem("ok");try{localStorage.removeItem(KEY)}catch(e){}location.hash="#ficha/"+nid}catch(e){alert("Error al guardar: "+e.message);$("#sv").textContent="Reintentar"}};
+  try{const nid=await db.save(o,id);if(!id)Object.keys(USERS).forEach(u=>notif(u,"ficha",ME.username+" creó una ficha nueva: "+(o.nombre||"personaje"),"#ficha/"+nid));cache=null;sessionStorage.removeItem("ok");try{localStorage.removeItem(KEY)}catch(e){}location.hash="#ficha/"+nid}catch(e){alert("Error al guardar: "+e.message);$("#sv").textContent="Reintentar"}};
 }
 
 /* ---------- Guía: reglamento y lore ---------- */
@@ -634,20 +697,20 @@ async function adminPanel(){
  if(!isAdmin()){$("#app").innerHTML="<h2>Sin acceso</h2><p>Esta sección es solo para administradores.</p>";return}
  await loadUsers();const fs=await all(true),cnt={};fs.forEach(f=>{if(f.uid)cnt[f.uid]=(cnt[f.uid]||0)+1});
  const us=Object.values(USERS).sort((a,b)=>(a.username||"").localeCompare(b.username||"","es")),RN={"":"Usuario",mod:"Moderador",admin:"Administrador"};
- $("#app").innerHTML=`<h2>🛡 Panel de administración</h2><div class="note"><b>Administrador:</b> todo lo de un moderador, más designar roles, asignar las razas restringidas (desde la ficha de cada personaje) y elegirlas en su propio editor.<br><b>Moderador:</b> borrar fichas, fotos y comentarios de cualquier usuario.<br><b>Usuario:</b> permisos normales, solo sobre lo suyo.</div><h3 class="sh">Roles de la comunidad <small style="color:var(--mut);font-weight:400">(${us.length} usuarios)</small></h3><div class="lst">${us.map(u=>`<div class="r2"><a href="#perfil/${u.id}">${av(u,40)}</a><div class="rb"><a class="rt" href="#perfil/${u.id}">${esc(u.username)}</a><small style="color:var(--mut)">${cnt[u.id]||0} fichas${u.id==ME.id?" · tú (tu rol no se puede cambiar aquí)":""}</small></div><select data-r="${u.id}" style="width:auto" ${u.id==ME.id?"disabled":""}>${Object.keys(RN).map(k=>`<option value="${k}" ${(ROLES[u.id]||"")==k?"selected":""}>${RN[k]}</option>`).join("")}</select></div>`).join("")}</div><p id="am" style="color:var(--mut);min-height:1.4em"></p>`;
- document.querySelectorAll("[data-r]").forEach(sl=>sl.onchange=async()=>{const uid=sl.dataset.r,v=sl.value;sl.disabled=true;
+ $("#app").innerHTML=`<h2>🛡 Panel de administración</h2><div class="note"><b>Administrador:</b> todo lo de un moderador, más designar roles, asignar las razas restringidas (desde la ficha de cada personaje) y elegirlas en su propio editor.<br><b>Moderador:</b> borrar fichas, fotos y comentarios de cualquier usuario.<br><b>Usuario:</b> permisos normales, solo sobre lo suyo.</div><h3 class="sh">Roles de la comunidad <small style="color:var(--mut);font-weight:400">(${us.length} usuarios)</small></h3><div class="lst">${us.map(u=>`<div class="r2"><a href="#perfil/${u.id}">${av(u,40)}</a><div class="rb"><a class="rt" href="#perfil/${u.id}">${esc(u.username)}</a><small style="color:var(--mut)">${cnt[u.id]||0} fichas${u.id==ME.id?" · tú (tu rol no se puede cambiar aquí)":""}</small></div><select data-r="${u.id}" style="width:auto" ${u.id==ME.id?"disabled":""}>${Object.keys(RN).map(k=>`<option value="${k}" ${(ROLES[u.id]||"")==k?"selected":""}>${RN[k]}</option>`).join("")}</select></div>`).join("")}</div><p id="am" style="color:var(--mut);min-height:1.4em"></p>`+novAdminHTML();
+ novAdminInit();document.querySelectorAll("[data-r]").forEach(sl=>sl.onchange=async()=>{const uid=sl.dataset.r,v=sl.value;sl.disabled=true;
   try{if(v)await db.setRole(uid,{rol:v,asignadoPor:ME.id,createdAt:Date.now()});else await db.delRole(uid);
-   if(v)ROLES[uid]=v;else delete ROLES[uid];side();$("#am").textContent="✔ Rol de "+(USERS[uid]?USERS[uid].username:"usuario")+" actualizado a "+RN[v]+"."}
+   if(v)ROLES[uid]=v;else delete ROLES[uid];notif(uid,"rol",v?"Ahora eres "+RN[v]:"Tu rol volvió a ser Usuario","#perfil/"+uid);side();$("#am").textContent="✔ Rol de "+(USERS[uid]?USERS[uid].username:"usuario")+" actualizado a "+RN[v]+"."}
   catch(e){alert("No se pudo cambiar el rol: "+e.message);adminPanel();return}
   sl.disabled=false})}
 async function route(){if(!ME){gate();return}const [p,id]=(location.hash.slice(1)||"inicio").split("/");
  closeMenus();document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.n==p));document.querySelectorAll("#bnav [data-n]").forEach(a=>a.classList.toggle("on",a.dataset.n.split(",").includes(p)&&(p!="perfil"||id==ME.id)));scrollTo(0,0);
- try{await ({inicio,galeria,crear:()=>form(),ficha:()=>ficha(id),editar:()=>form(id),perfil:()=>perfil(id),guia:()=>guia(),admin:()=>adminPanel()}[p]||inicio)()}catch(e){$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}}
+ try{await ({inicio,galeria,crear:()=>form(),ficha:()=>ficha(id),editar:()=>form(id),perfil:()=>perfil(id),guia:()=>guia(),admin:()=>adminPanel(),novedades:()=>novedades()}[p]||inicio)()}catch(e){$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}}
 try{await initDB();addEventListener("hashchange",route);
  AU.onAuthStateChanged(A,u=>start(u).catch(e=>{$("#app").innerHTML="<p>Error: "+esc(e.message)+"</p>"}));
  setInterval(async()=>{if(ME&&!document.hidden){beat();try{await loadUsers();side()}catch(e){}}},60000);
  document.addEventListener("visibilitychange",beat);
- document.addEventListener("click",e=>{const m=$("#umenu");if(m&&!m.hidden&&!e.target.closest(".um")){m.hidden=true;$("#umb").setAttribute("aria-expanded","false")}});
+ document.addEventListener("click",e=>{const np=$("#npan");if(np&&!np.hidden&&!e.composedPath().some(x=>x.id=="npan"||(x.dataset&&"bell" in x.dataset)))np.hidden=true;const m=$("#umenu");if(m&&!m.hidden&&!e.target.closest(".um")){m.hidden=true;$("#umb").setAttribute("aria-expanded","false")}});
  document.addEventListener("keydown",e=>{if(e.key=="Escape")closeMenus()});
  matchMedia("(min-width:761px)").addEventListener("change",closeMenus)}catch(e){$("#app").innerHTML="<p>No se pudo conectar: "+esc(e.message)+"</p>"}
 </script>
